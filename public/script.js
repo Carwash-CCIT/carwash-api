@@ -361,27 +361,8 @@ function renderFinanceTable(elId, rows, labelText) {
 
 // ─── Init ─────────────────────────────────────────────────────
 
-function updateDashboard() {
-    const apiLink = "https://script.google.com/macros/s/AKfycbwCSDt4aoxyrnU9TIrEiFZtDbGcoah_VN0mw38fzYc9KNUG6XQDTGZ6bqZ7YxpIBDUr/exec?action=read";
-    fetch(apiLink)
-        .then(response => response.json())
-        .then(data => {
-            if (data && data.length > 0) {
-                // ข้าม header row (index 0)
-                let latestRow = data[data.length - 1]; 
-                let amount = latestRow[2]; 
-                const el = document.getElementById("show_income");
-                if (el) el.innerText = Number(amount).toLocaleString();
-            }
-        })
-        .catch(err => console.error("Error fetching Google Sheets API:", err));
-}
-
 window.onload = () => {
     fetchMachines();
-    updateDashboard(); // Fetch Google Sheets Data
-    setInterval(updateDashboard, 5000); // ให้อัปเดตอัตโนมัติทุก 5 วินาทีตามที่ผู้ใช้ขอ
-
     // Don't fetch users/finance on load since they need admin auth
     if (!pollTimer) {
         pollTimer = setInterval(() => { fetchMachines(); }, 10000);

@@ -394,5 +394,39 @@ function startPaymentPolling() {
     }, 5000); // เช็คทุก 5 วินาที
 }
 
+// ─── จำลองการจ่ายเงินสำเร็จ (Mock) ─────────────────────────────
+async function simulateTopupSuccess() {
+    if (!currentQrRef) return showToast('ไม่พบข้อมูลการเติมเงิน', 'error');
+
+    const btn = document.querySelector('.btn-pay');
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังจำลองการจ่ายเงิน...';
+    btn.disabled = true;
+
+    try {
+        const res = await fetch('/webhook/scb', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ref3: currentQrRef,
+                amount: currentQrAmount.toFixed(2),
+                transactionId: 'MOCK_TXN_' + Date.now()
+            })
+        });
+
+        if (res.ok) {
+            showToast('จำลองการจ่ายเงินสำเร็จ! รอระบบอัปเดต...');
+            // startPaymentPolling จะทำงานอยู่แล้วจากการกด generateQR
+        } else {
+            showToast('จำลองการจ่ายเงินไม่สำเร็จ', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> ชำระเงินสำเร็จ (Mock)';
+        }
+    } catch (e) {
+        showToast('Connection Error', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> ชำระเงินสำเร็จ (Mock)';
+    }
+}
+
 // ─── Start ─────────────────────────────────────────────────────
 init();

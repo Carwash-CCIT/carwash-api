@@ -1,15 +1,24 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
+const fs = require('fs');
+const path = require('path');
+
+// Ensure data directory exists
+const dataDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+}
+
 require('dotenv').config();
 const nodemailer = require('nodemailer');
 const axios = require('axios');
 const thaibulksmsApi = require('thaibulksms-api');
-const path = require('path');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
 
 const app = express();
+app.set('trust proxy', true); // Enable trusting ALL reverse proxies (Nginx, Cloudflare) for correct rate-limiting IP
 const port = process.env.PORT || 3000;
 
 // ─── MIDDLEWARE ─────────────────────────────────────────────
@@ -34,7 +43,7 @@ app.use((req, res, next) => {
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 5, // 5 requests per windowMs
-    message: '❌ ลองเข้าสู่ระบบเกินครั้ง กรุณารอ 15 นาที',
+    message: { message: '❌ ลองเข้าสู่ระบบเกินครั้ง กรุณารอ 15 นาที' },
     standardHeaders: true,
     legacyHeaders: false,
 });
@@ -42,7 +51,7 @@ const authLimiter = rateLimit({
 const apiLimiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
     max: 30, // 30 requests per minute
-    message: '❌ เกินขีดจำกัดการใช้งาน',
+    message: { message: '❌ เกินขีดจำกัดการใช้งาน' },
     skip: (req) => req.user?.role === 'admin' // admins bypass
 });
 
@@ -50,20 +59,79 @@ app.use('/auth/', authLimiter);
 app.use('/api/', apiLimiter);
 
 // ─── ฐานข้อมูล ──────────────────────────────────────────────
-const db = new sqlite3.Database(path.join(__dirname, 'data', 'carwash.db'), (err) => {
+const dbPath = path.join(__dirname, 'data', 'carwash.db');
+const db = new sqlite3.Database(dbPath, (err) => {
     if (err) return console.error('❌ ไม่สามารถเชื่อมต่อฐานข้อมูลได้:', err.message);
     console.log('✅ เชื่อมต่อฐานข้อมูล data/carwash.db สำเร็จ');
-    db.run('PRAGMA journal_mode = WAL');
-    db.run('PRAGMA cache_size = 5000');
-    db.run('PRAGMA foreign_keys = ON');
-    db.run('PRAGMA synchronous = NORMAL');
-    // Auto-migrate
-    db.run("ALTER TABLE machines ADD COLUMN pending_command TEXT DEFAULT NULL", () => { });
-    db.run("ALTER TABLE users ADD COLUMN pending_qr_ref TEXT DEFAULT NULL", () => { });
-    db.run("ALTER TABLE users ADD COLUMN pending_qr_amount REAL DEFAULT NULL", () => { });
-    db.run("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'", () => { });
-    db.run("ALTER TABLE users ADD COLUMN token_expires DATETIME", () => { });
-    db.run("ALTER TABLE users ADD COLUMN refresh_token TEXT", () => { });
+    
+    db.serialize(() => {
+        db.run('PRAGMA journal_mode = WAL');
+        db.run('PRAGMA cache_size = 5000');
+        db.run('PRAGMA foreign_keys = ON');
+        db.run('PRAGMA synchronous = NORMAL');
+
+        // 🛡️ Auto-Migrate: Ensure tables exist even if init_db.js failed
+        db.run(`CREATE TABLE IF NOT EXISTS machines (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            status TEXT DEFAULT 'ready'
+        )`, () => {
+            // Check if machines exist, if not, insert defaults
+            db.get("SELECT COUNT(*) as count FROM machines", (err, row) => {
+                if (!err && row.count === 0) {
+                    db.run(`INSERT INTO machines (name, status) VALUES 
+                        ('Bay 1', 'idle'), ('Bay 2', 'idle'), ('Bay 3', 'idle'), 
+                        ('Bay 4', 'idle'), ('Bay 5', 'idle'), ('Bay 6', 'idle')`);
+                    console.log("✅ [DB] สร้างข้อมูลตู้ล้างรถเริ่มต้นเรียบร้อย");
+                }
+            });
+        });
+
+        db.run(`CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            phone TEXT UNIQUE,
+            email TEXT UNIQUE,
+            password TEXT,
+            name TEXT,
+            balance INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'active',
+            token TEXT,
+            otp_code TEXT,
+            otp_expires DATETIME,
+            otp_type TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        db.run(`CREATE TABLE IF NOT EXISTS transactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            action_type TEXT,
+            amount INTEGER,
+            machine_id INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(machine_id) REFERENCES machines(id)
+        )`);
+
+        db.run(`CREATE TABLE IF NOT EXISTS sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            machine_id INTEGER,
+            start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            reserved_amount INTEGER,
+            status TEXT DEFAULT 'active',
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(machine_id) REFERENCES machines(id)
+        )`);
+
+        // Migration for existing tables
+        db.run("ALTER TABLE machines ADD COLUMN pending_command TEXT DEFAULT NULL", () => { });
+        db.run("ALTER TABLE users ADD COLUMN pending_qr_ref TEXT DEFAULT NULL", () => { });
+        db.run("ALTER TABLE users ADD COLUMN pending_qr_amount REAL DEFAULT NULL", () => { });
+        db.run("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'", () => { });
+        db.run("ALTER TABLE users ADD COLUMN token_expires DATETIME", () => { });
+        db.run("ALTER TABLE users ADD COLUMN refresh_token TEXT", () => { });
+    });
 });
 
 // ─── ยูทิลิตี้ ────────────────────────────────────────────────
@@ -975,8 +1043,8 @@ app.post('/api/qr/create', authMiddleware, async (req, res) => {
                 [qrRef, amount, req.user.id]
             );
 
-            // A simple placeholder base64 for a QR code (150x150)
-            const mockQrImage = "iVBORw0KGgoAAAANSUhEUgAAAJYAAACWAQAAAAB2866EAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElNRQfmAxMTIidmX6v6AAAA8UlEQVRYw2P4v4KBAQgYGBiY/jP8Z4AIIAFGkAAjSIARJMAlwAgSYAQJMIKMjY2NjY2Njc3Y2NjY2NjY2NjExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMSW5mQAALjSADF61TfPAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDIyLTAzLTE5VDE5OjM0OjM5KzAwOjAw7p3M1AAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyMi0wMy0xOVQxOTozNDozOSswMDowMHu7iR0AAAAASUVORK5CYII=";
+            // A simple placeholder base64 for a QR code (A real QR code pointing to "MOCK")
+            const mockQrImage = "iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAIAAAAiOByfAAAACXBIWXMAAAsTAAALEwEAmpwYAAAByklEQVR4nO3dy27DIBRAUXv+/59ll02lSps8ZMYD6m4E9UAnAnK6rgsAAJ6zPzoAAH8WCABYIABIACAAIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIPED3FEE6pS/8wEAAAAASUVORK5CYII=";
 
             return res.json({ 
                 qrImage: mockQrImage, 
