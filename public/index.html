@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Car Wash — Admin Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Mobile hamburger -->
+    <button class="hamburger" onclick="toggleSidebar()" id="hamburgerBtn">
+        <i class="fa-solid fa-bars" id="hamburgerIcon"></i> เมนู
+    </button>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon"><i class="fa-solid fa-car-side"></i></div>
+            <div class="logo-text">
+                <span class="logo-title">Smart Car</span>
+                <span class="logo-sub">Wash Admin</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active" onclick="showSection('overview')">
+                <i class="fa-solid fa-gauge-high"></i>
+                <span>ภาพรวม</span>
+            </a>
+            <a href="#" class="nav-item" onclick="showSection('control')">
+                <i class="fa-solid fa-sliders"></i>
+                <span>ควบคุมตู้</span>
+            </a>
+            <a href="#" class="nav-item" onclick="showSection('finance')">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>การเงิน</span>
+            </a>
+            <a href="#" class="nav-item" onclick="showSection('members')">
+                <i class="fa-solid fa-users"></i>
+                <span>สมาชิก</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="clock" id="clock">00:00:00</div>
+            <div class="clock-date" id="clockDate">—</div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- ════ SECTION: OVERVIEW ════ -->
+        <section id="section-overview" class="content-section active">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">ภาพรวม</h1>
+                    <p class="page-subtitle">สถานะตู้ล้างรถและสมาชิกแบบเรียลไทม์</p>
+                </div>
+                <button class="btn-refresh" onclick="refreshAll()">
+                    <i class="fa-solid fa-rotate-right"></i> รีเฟรช
+                </button>
+            </div>
+
+            <!-- Stat Cards -->
+            <div class="stat-grid">
+                <div class="stat-card stat-blue">
+                    <div class="stat-icon"><i class="fa-solid fa-droplet"></i></div>
+                    <div class="stat-body">
+                        <div class="stat-label">ตู้ใช้งานอยู่</div>
+                        <div class="stat-value" id="statBusy">0</div>
+                    </div>
+                </div>
+                <div class="stat-card stat-green">
+                    <div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div>
+                    <div class="stat-body">
+                        <div class="stat-label">ตู้ว่างพร้อมใช้</div>
+                        <div class="stat-value" id="statIdle">0</div>
+                    </div>
+                </div>
+                <div class="stat-card stat-purple" onclick="showSection('members')" style="cursor:pointer;"
+                    onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                    <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+                    <div class="stat-body">
+                        <div class="stat-label">สมาชิกทั้งหมด <i class="fa-solid fa-arrow-up-right-from-square"
+                                style="font-size:0.7rem; margin-left:4px; opacity:0.6;"></i></div>
+                        <div class="stat-value" id="statUsers">0</div>
+                    </div>
+                </div>
+                <div class="stat-card stat-amber" onclick="showSection('finance')"
+                    style="cursor:pointer; transition: opacity 0.2s, transform 0.2s;"
+                    onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                    <div class="stat-icon"><i class="fa-solid fa-coins"></i></div>
+                    <div class="stat-body">
+                        <div class="stat-label">ยอดเงินรวมในระบบ (฿) <i class="fa-solid fa-arrow-up-right-from-square"
+                                style="font-size:0.7rem; margin-left:4px; opacity:0.6;"></i></div>
+                        <div class="stat-value" id="statWallet">0</div>
+                    </div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(21,128,61,0.05)); border: 1px solid rgba(34,197,94,0.2);">
+                    <div class="stat-icon" style="background: rgba(34,197,94,0.2); color: #22c55e;"><i class="fa-solid fa-file-excel"></i></div>
+                    <div class="stat-body">
+                        <div class="stat-label">รายได้รวม G-Sheet (฿)</div>
+                        <div class="stat-value" id="show_income" style="color: #4ade80;">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bay Grid -->
+            <div class="section-header">
+                <h2 class="section-title"><i class="fa-solid fa-server"></i> สถานะตู้ล้างรถ</h2>
+            </div>
+            <div class="bay-grid" id="machinesList">
+                <div class="loading-state"><i class="fa-solid fa-spinner fa-spin"></i> กำลังโหลด...</div>
+            </div>
+        </section>
+
+        <!-- ════ SECTION: CONTROL ════ -->
+        <section id="section-control" class="content-section">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">ควบคุมตู้</h1>
+                    <p class="page-subtitle">ส่งคำสั่งไปยังตู้ล้างรถแต่ละช่อง</p>
+                </div>
+            </div>
+
+            <div class="control-layout">
+                <div class="card">
+                    <h3 class="card-title">เลือกช่องที่ต้องการ</h3>
+                    <div class="bay-selector-grid" id="baySelector">
+                        <!-- generated by JS -->
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title">คำสั่งบริการ</h3>
+                    <div class="cmd-grid">
+                        <button class="cmd-btn water" onclick="sendCommand('WATER_ON')">
+                            <i class="fa-solid fa-droplet"></i>
+                            <span>น้ำ</span>
+                        </button>
+                        <button class="cmd-btn foam" onclick="sendCommand('FOAM_ON')">
+                            <i class="fa-solid fa-soap"></i>
+                            <span>โฟม</span>
+                        </button>
+                        <button class="cmd-btn air" onclick="sendCommand('AIR_ON')">
+                            <i class="fa-solid fa-wind"></i>
+                            <span>เป่าลม</span>
+                        </button>
+                        <button class="cmd-btn wax" onclick="sendCommand('WAX_ON')">
+                            <i class="fa-solid fa-star"></i>
+                            <span>เคลือบสี</span>
+                        </button>
+                        <button class="cmd-btn tyre" onclick="sendCommand('TYRE_ON')">
+                            <i class="fa-solid fa-circle-dot"></i>
+                            <span>ยางดำ</span>
+                        </button>
+                        <button class="cmd-btn stop" onclick="sendCommand('STOP')">
+                            <i class="fa-solid fa-stop"></i>
+                            <span>หยุด</span>
+                        </button>
+                    </div>
+                    <div id="cmdResult" class="cmd-result">
+                        <i class="fa-solid fa-circle-info"></i> เลือก Bay แล้วกดคำสั่งด้านบน
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ════ SECTION: FINANCE ════ -->
+        <section id="section-finance" class="content-section">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">การเงิน</h1>
+                    <p class="page-subtitle">ยอดเติมเงินเข้าระบบ รายวัน / รายสัปดาห์ / รายเดือน</p>
+                </div>
+                <button class="btn-refresh" onclick="fetchFinance()">
+                    <i class="fa-solid fa-rotate-right"></i> รีเฟรช
+                </button>
+            </div>
+
+            <!-- Summary big cards -->
+            <div class="stat-grid" id="financeSummary">
+                <div class="stat-card stat-blue">
+                    <div class="stat-icon"><i class="fa-solid fa-calendar-day"></i></div>
+                    <div class="stat-body">
+                        <div class="stat-label">ยอดวันนี้ (฿)</div>
+                        <div class="stat-value" id="finToday">—</div>
+                    </div>
+                </div>
+                <div class="stat-card stat-green">
+                    <div class="stat-icon"><i class="fa-solid fa-calendar-week"></i></div>
+                    <div class="stat-body">
+                        <div class="stat-label">7 วันย้อนหลัง (฿)</div>
+                        <div class="stat-value" id="finWeek">—</div>
+                    </div>
+                </div>
+                <div class="stat-card stat-purple">
+                    <div class="stat-icon"><i class="fa-solid fa-calendar"></i></div>
+                    <div class="stat-body">
+                        <div class="stat-label">เดือนนี้ (฿)</div>
+                        <div class="stat-value" id="finMonth">—</div>
+                    </div>
+                </div>
+                <div class="stat-card stat-amber">
+                    <div class="stat-icon"><i class="fa-solid fa-infinity"></i></div>
+                    <div class="stat-body">
+                        <div class="stat-label">ยอดรวมทั้งหมด (฿)</div>
+                        <div class="stat-value" id="finAlltime">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Breakdowns -->
+            <div class="finance-grid">
+                <div class="card">
+                    <h3 class="card-title"><i class="fa-solid fa-calendar-day" style="color:var(--primary);"></i> รายวัน
+                        (7 วันล่าสุด)</h3>
+                    <div id="finDaily">
+                        <div class="loading-state"><i class="fa-solid fa-spinner fa-spin"></i></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3 class="card-title"><i class="fa-solid fa-calendar-week" style="color:#10b981;"></i> รายสัปดาห์
+                        (4 สัปดาห์)</h3>
+                    <div id="finWeekly">
+                        <div class="loading-state"><i class="fa-solid fa-spinner fa-spin"></i></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3 class="card-title"><i class="fa-solid fa-calendar" style="color:#8b5cf6;"></i> รายเดือน (6
+                        เดือน)</h3>
+                    <div id="finMonthly">
+                        <div class="loading-state"><i class="fa-solid fa-spinner fa-spin"></i></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ════ SECTION: MEMBERS ════ -->
+        <section id="section-members" class="content-section">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">สมาชิก</h1>
+                    <p class="page-subtitle">รายชื่อและจัดการสมาชิกทั้งหมด</p>
+                </div>
+                <div style="display:flex; gap:0.6rem;">
+                    <button class="btn-refresh" onclick="openAddUserModal()"
+                        style="background:linear-gradient(135deg,#10b981,#059669); box-shadow:0 4px 12px rgba(16,185,129,0.3);">
+                        <i class="fa-solid fa-user-plus"></i> เพิ่มสมาชิก
+                    </button>
+                    <button class="btn-refresh" onclick="fetchUsers()">
+                        <i class="fa-solid fa-rotate-right"></i> รีเฟรช
+                    </button>
+                </div>
+            </div>
+
+            <div class="card" style="overflow-x:auto;">
+                <table class="user-table" id="userTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>ชื่อ</th>
+                            <th>เบอร์ / อีเมล</th>
+                            <th>ยอดเงิน (฿)</th>
+                            <th>สถานะ</th>
+                            <th>เติมเงิน</th>
+                            <th>ลดเงิน</th>
+                            <th>จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody">
+                        <tr>
+                            <td colspan="8" class="table-empty">กำลังโหลด...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- ════ MODAL: Add User ════ -->
+    <div id="modalAddUser"
+        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); z-index:500; align-items:center; justify-content:center; padding:1rem;">
+        <div
+            style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:2rem; width:100%; max-width:400px; box-shadow:0 32px 64px rgba(0,0,0,0.6);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                <h3 style="font-size:1.1rem; font-weight:700; color:#34d399;"><i class="fa-solid fa-user-plus"></i>
+                    เพิ่มสมาชิกใหม่</h3>
+                <button onclick="closeAddUserModal()"
+                    style="background:none; border:none; color:#64748b; font-size:1.2rem; cursor:pointer;"><i
+                        class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                <input id="addName" type="text" placeholder="ชื่อ *"
+                    style="width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:0.75rem 1rem; color:#f1f5f9; font-family:inherit; font-size:0.95rem; outline:none;">
+                <input id="addPhone" type="text" placeholder="เบอร์โทร (ถ้ามี)"
+                    style="width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:0.75rem 1rem; color:#f1f5f9; font-family:inherit; font-size:0.95rem; outline:none;">
+                <input id="addEmail" type="email" placeholder="อีเมล (ถ้ามี)"
+                    style="width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:0.75rem 1rem; color:#f1f5f9; font-family:inherit; font-size:0.95rem; outline:none;">
+                <input id="addPassword" type="password" placeholder="รหัสผ่าน (ถ้าเป็น Gmail)"
+                    style="width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:0.75rem 1rem; color:#f1f5f9; font-family:inherit; font-size:0.95rem; outline:none;">
+            </div>
+            <div style="display:flex; gap:0.6rem; margin-top:1.25rem;">
+                <button onclick="submitAddUser()"
+                    style="flex:1; padding:0.8rem; border-radius:12px; border:none; background:linear-gradient(135deg,#10b981,#059669); color:white; font-family:inherit; font-size:0.92rem; font-weight:600; cursor:pointer;">
+                    <i class="fa-solid fa-check"></i> เพิ่มสมาชิก
+                </button>
+                <button onclick="closeAddUserModal()"
+                    style="flex:1; padding:0.8rem; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:transparent; color:#94a3b8; font-family:inherit; font-size:0.92rem; cursor:pointer;">
+                    ยกเลิก
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════ MODAL: Change Password ════ -->
+    <div id="modalChangePassword"
+        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); z-index:500; align-items:center; justify-content:center; padding:1rem;">
+        <div
+            style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:2rem; width:100%; max-width:380px; box-shadow:0 32px 64px rgba(0,0,0,0.6);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                <h3 style="font-size:1.1rem; font-weight:700; color:#60a5fa;"><i class="fa-solid fa-key"></i>
+                    เปลี่ยนรหัสผ่าน</h3>
+                <button onclick="closeChangePasswordModal()"
+                    style="background:none; border:none; color:#64748b; font-size:1.2rem; cursor:pointer;"><i
+                        class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p id="changePwdLabel" style="font-size:0.85rem; color:#94a3b8; margin-bottom:1rem;"></p>
+            <input id="pwdUserId" type="hidden">
+            <input id="newPassword" type="password" placeholder="รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)"
+                style="width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:0.75rem 1rem; color:#f1f5f9; font-family:inherit; font-size:0.95rem; outline:none; margin-bottom:1.25rem;">
+            <div style="display:flex; gap:0.6rem;">
+                <button onclick="submitChangePassword()"
+                    style="flex:1; padding:0.8rem; border-radius:12px; border:none; background:linear-gradient(135deg,#3b82f6,#6d28d9); color:white; font-family:inherit; font-size:0.92rem; font-weight:600; cursor:pointer;">
+                    <i class="fa-solid fa-key"></i> บันทึก
+                </button>
+                <button onclick="closeChangePasswordModal()"
+                    style="flex:1; padding:0.8rem; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:transparent; color:#94a3b8; font-family:inherit; font-size:0.92rem; cursor:pointer;">
+                    ยกเลิก
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
+        }
+    </script>
+</body>
+
+</html>

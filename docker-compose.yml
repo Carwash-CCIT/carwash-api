@@ -1,0 +1,90 @@
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: carwash-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-carwash}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-carwash}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - carwash-network
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: carwash-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - carwash-network
+    restart: unless-stopped
+
+  # Node.js Backend
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: carwash-api
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-carwash}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
+      GMAIL_USER: ${GMAIL_USER}
+      GMAIL_PASS: ${GMAIL_PASS}
+      THAIBULKSMS_APP_KEY: ${THAIBULKSMS_APP_KEY}
+      THAIBULKSMS_APP_SECRET: ${THAIBULKSMS_APP_SECRET}
+      SCB_API_KEY: ${SCB_API_KEY}
+      SCB_API_SECRET: ${SCB_API_SECRET}
+      SCB_BILLER_ID: ${SCB_BILLER_ID}
+      SCB_MERCHANT_ID: ${SCB_MERCHANT_ID}
+      SCB_SANDBOX: ${SCB_SANDBOX:-true}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./public:/app/public
+      - ./src:/app/src
+    networks:
+      - carwash-network
+    restart: unless-stopped
+
+networks:
+  carwash-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

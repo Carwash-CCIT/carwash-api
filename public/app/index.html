@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Car Wash — เข้าสู่ระบบ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* ─── Base Variables ─── */
+        :root {
+            --primary-color: #ffffff;
+            --primary-light: #f1f5f9;
+            --primary-dark: #64748b;
+            --bg-slate: #030712;
+            --bg-card: #0f172a;
+            --success: #94a3b8;
+            --danger: #334155;
+            --text-main: #f8fafc;
+            --text-secondary: #64748b;
+            --card-border: rgba(255, 255, 255, 0.05);
+            --font: 'Outfit', sans-serif;
+            --glass: rgba(3, 7, 18, 0.85);
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg-slate);
+            color: var(--text-main);
+            font-family: var(--font);
+            min-height: 100vh;
+            padding: 1rem;
+            overflow-x: hidden;
+        }
+
+        /* Background orbs - Optimized */
+        .background-orb {
+            position: fixed;
+            border-radius: 50%;
+            /* filter: blur(80px); REMOVED for performance */
+            opacity: 0.05;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .orb-1 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            top: -100px;
+            left: -100px;
+        }
+
+        .orb-2 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(148, 163, 184, 0.1) 0%, transparent 70%);
+            bottom: -50px;
+            right: -50px;
+        }
+
+        /* Glass panel card - Optimized */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.95); /* Solid dark */
+            border: 1px solid var(--card-border);
+            border-radius: 28px;
+            padding: 2.25rem;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            /* backdrop-filter: blur(12px); REMOVED */
+        }
+
+        /* Base inputs & buttons */
+        input[type="text"],
+        input[type="number"],
+        input[type="password"],
+        input[type="tel"] {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1rem 1.25rem;
+            color: var(--text-main);
+            font-family: var(--font);
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            border-color: var(--primary-color);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05);
+        }
+
+        input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: #ffffff;
+            color: #030712;
+            border: none;
+            border-radius: 16px;
+            padding: 1rem;
+            font-family: var(--font);
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .btn-primary:hover {
+            background: #f1f5f9;
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn-icon {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            border-radius: 12px;
+            padding: 0.6rem 1rem;
+            font-family: var(--font);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .result-text {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            background: rgba(15, 23, 42, 0.95);
+            /* backdrop-filter: blur(10px); REMOVED */
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 0.8rem 1.2rem;
+            font-size: 0.88rem;
+            z-index: 9999;
+            transition: all 0.3s ease;
+        }
+
+        .toast.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(8px);
+        }
+
+        .toast.show {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+        .input-group-vertical {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .mobile-container {
+            max-width: 440px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            min-height: 90vh;
+            justify-content: center;
+        }
+
+        .glass-panel {
+            margin: 0.5rem auto;
+            max-width: 420px;
+            width: 100%;
+        }
+
+        .auth-view {
+            text-align: center;
+        }
+
+        .auth-icon {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .bay-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #ffffff;
+            margin-bottom: 1.5rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Info View */
+        .info-view {
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+
+        .balance-card {
+            background: linear-gradient(135deg, #0f172a, #030712);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2.25rem 1.5rem;
+            border-radius: 24px;
+            margin-bottom: 2rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .balance-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
+        }
+
+        .balance-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .balance-amount {
+            font-size: 3.8rem;
+            font-weight: 800;
+            color: white;
+            line-height: 1;
+        }
+
+        .balance-currency {
+            font-size: 1.6rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-right: 0.2rem;
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--card-border);
+            border-radius: 18px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+
+        .info-card h3 {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.4rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .info-card p {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .instruction-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-top: 0.5rem;
+        }
+
+        .instruction-text i {
+            color: #fbbf24;
+            margin-right: 4px;
+        }
+
+        /* OTP View */
+        .otp-inputs {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin: 1.5rem 0;
+        }
+
+        /* Tab Buttons */
+        .tab-bar {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .tab-btn {
+            padding: 0.45rem 1.25rem;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--primary-color);
+            border-color: transparent;
+            color: #030712;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+        }
+
+        /* ─── Top-up Modal ─── */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.95); /* High opacity solid */
+            /* backdrop-filter: blur(16px); REMOVED */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.25rem;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .modal.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 22px;
+            width: 100%;
+            max-width: 340px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+            transform: scale(0.93) translateY(8px);
+            transition: transform 0.3s cubic-bezier(0.34, 1.3, 0.6, 1);
+        }
+
+        .modal.show .modal-content {
+            transform: scale(1) translateY(0);
+        }
+
+        /* top accent bar */
+        .modal-topbar {
+            height: 4px;
+            background: linear-gradient(90deg, #6366f1, #3b82f6, #06b6d4);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .modal-inner {
+            padding: 1.5rem;
+        }
+
+        /* Title row */
+        .modal-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+        }
+
+        .modal-title-text {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+
+        .btn-x {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.18s;
+        }
+
+        .btn-x:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #f1f5f9;
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Chips */
+        .chip-label {
+            font-size: 0.7rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.9px;
+            margin-bottom: 0.45rem;
+        }
+
+        .amount-chips {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.45rem;
+            margin-bottom: 1rem;
+        }
+
+        .chip {
+            padding: 0.5rem 0;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.04);
+            color: #94a3b8;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.18s;
+            text-align: center;
+        }
+
+        .chip:hover {
+            background: rgba(59, 130, 246, 0.12);
+            border-color: rgba(59, 130, 246, 0.4);
+            color: #60a5fa;
+        }
+
+        .chip.active {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: #3b82f6;
+            color: #60a5fa;
+        }
+
+        /* Input */
+        .topup-input-row {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .topup-input-row .baht-sym {
+            position: absolute;
+            left: 0.9rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #60a5fa;
+            pointer-events: none;
+        }
+
+        .topup-input-row input {
+            padding-left: 2.1rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-align: left;
+            letter-spacing: 0.5px;
+            width: 100%;
+        }
+
+        /* Gen button */
+        .btn-gen {
+            width: 100%;
+            padding: 0.82rem;
+            border-radius: 13px;
+            border: none;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.92rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            transition: all 0.2s;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.35);
+        }
+
+        .btn-gen:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+
+        /* QR card */
+        .qr-card {
+            background: white;
+            border-radius: 14px;
+            padding: 10px;
+            display: inline-block;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        }
+
+        .qr-card img {
+            display: block;
+            width: 180px;
+            height: 180px;
+            border-radius: 8px;
+            object-fit: contain;
+        }
+
+        .qr-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            padding: 1rem;
+            margin: 0.75rem 0;
+        }
+
+        .qr-wrap-label {
+            font-size: 0.7rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.9px;
+        }
+
+        .mock-note {
+            font-size: 0.72rem;
+            color: #f59e0b;
+            background: rgba(245, 158, 11, 0.07);
+            border: 1px solid rgba(245, 158, 11, 0.18);
+            border-radius: 7px;
+            padding: 0.3rem 0.6rem;
+        }
+
+        /* Pay / close */
+        .btn-pay {
+            width: 100%;
+            padding: 0.82rem;
+            border-radius: 13px;
+            border: none;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.92rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            transition: all 0.2s;
+            margin-bottom: 0.55rem;
+            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.28);
+        }
+
+        .btn-pay:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+
+        .btn-dismiss {
+            width: 100%;
+            padding: 0.65rem;
+            border-radius: 13px;
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            background: transparent;
+            color: #64748b;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.18s;
+        }
+
+        .btn-dismiss:hover {
+            background: rgba(255, 255, 255, 0.04);
+            color: #94a3b8;
+        }
+
+        /* (old duplicate modal CSS removed) */
+
+        .modal-content {
+            background: #1e293b;
+            border: 1px solid var(--card-border);
+            border-radius: 32px 32px 0 0;
+            padding: 0;
+            width: 100%;
+            max-width: 480px;
+            overflow: hidden;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal.show .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-handle {
+            width: 40px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.18);
+            border-radius: 2px;
+            margin: 0.75rem auto 0;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            padding: 1.5rem 1.5rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .modal-header-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+
+        .modal-header-text h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 0.15rem;
+        }
+
+        .modal-header-text p {
+            font-size: 0.82rem;
+            opacity: 0.8;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .amount-chips {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .chip {
+            padding: 0.55rem 0;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: #cbd5e1;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .chip:hover,
+        .chip.selected {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: #3b82f6;
+            color: #93c5fd;
+        }
+
+        .amount-input-wrap {
+            position: relative;
+            margin-bottom: 1.25rem;
+        }
+
+        .amount-input-wrap .currency-symbol {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            pointer-events: none;
+        }
+
+        .amount-input-wrap input {
+            padding-left: 2.5rem;
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-align: left;
+        }
+
+        .qr-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            margin-bottom: 1rem;
+        }
+
+        .qr-label {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .qr-frame {
+            width: 190px;
+            height: 190px;
+            border-radius: 16px;
+            background: white;
+            padding: 8px;
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 12px 30px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+        }
+
+        .qr-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 10px;
+        }
+
+        .mock-warning {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            border-radius: 10px;
+            padding: 0.6rem 0.9rem;
+            font-size: 0.78rem;
+            color: #fbbf24;
+            margin-top: 0.75rem;
+            text-align: left;
+        }
+
+        .modal-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        .btn-success-solid {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            padding: 0.9rem;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .btn-success-solid:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+
+        .btn-close-modal {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 0.75rem;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .btn-close-modal:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="background-orb orb-1"></div>
+    <div class="background-orb orb-2"></div>
+
+    <div class="mobile-container">
+
+        <!-- ══════ AUTH VIEW ══════ -->
+        <section id="viewAuth" class="glass-panel auth-view">
+            <div class="auth-icon"><i class="fa-solid fa-car-tunnel"></i></div>
+            <h2 class="gradient-text" id="authTitle" style="font-size:1.8rem; margin-bottom:0.4rem;">Smart Car Wash</h2>
+            <div class="bay-badge" id="bayBadge" style="margin-bottom:1.2rem;">
+                <i class="fa-solid fa-hashtag"></i><span id="bayBadgeText">กำลังโหลด...</span>
+            </div>
+
+            <div class="tab-bar">
+                <button class="tab-btn active" id="tabLogin" onclick="setAuthMode('login')">เข้าสู่ระบบ</button>
+                <button class="tab-btn" id="tabRegister" onclick="setAuthMode('register')">สมัครสมาชิก</button>
+            </div>
+
+            <div class="input-group-vertical">
+                <input type="text" id="loginName" placeholder="ชื่อของคุณ" class="hidden" autocomplete="name">
+                <input type="text" id="loginId" placeholder="เบอร์โทร / Gmail" autocomplete="username"
+                    oninput="checkInputType()">
+                <input type="password" id="loginPassword" placeholder="ตั้งรหัสผ่าน (เฉพาะ Gmail)" class="hidden">
+
+                <button class="btn-primary" onclick="requestOTP()" id="btnRequestOtp">
+                    <i class="fa-solid fa-paper-plane"></i> ขอรหัส OTP
+                </button>
+                <button class="btn-primary hidden" onclick="loginWithPassword()" id="btnLoginPassword">
+                    <i class="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบ
+                </button>
+            </div>
+            <p class="result-text" id="authMessage" style="margin-top:1rem; text-align:center;"></p>
+        </section>
+
+        <!-- ══════ OTP VIEW ══════ -->
+        <section id="viewOTP" class="glass-panel auth-view hidden" style="position:relative;">
+            <button class="btn-icon" onclick="switchView('viewAuth')" style="position:absolute;top:1rem;left:1rem;"><i
+                    class="fa-solid fa-arrow-left"></i></button>
+            <div class="auth-icon"><i class="fa-solid fa-lock"></i></div>
+            <h2 style="margin-bottom:0.5rem;">ยืนยันรหัส OTP</h2>
+            <p style="color:var(--text-secondary); font-size:0.9rem;">ส่งรหัสไปที่ <b id="displayId"
+                    style="color:white;"></b></p>
+            <div class="otp-inputs">
+                <input type="number" id="otpCode" placeholder="••••••"
+                    style="text-align:center; letter-spacing:10px; font-size:1.5rem; font-weight:600;"
+                    oninput="if(this.value.length===6) verifyOTP()">
+            </div>
+            <button class="btn-primary" onclick="verifyOTP()" id="btnVerifyOtp" style="width:100%;">
+                ยืนยัน
+            </button>
+        </section>
+
+        <!-- ══════ INFO VIEW (หลัง Login สำเร็จ) ══════ -->
+        <section id="viewInfo" class="hidden">
+            <div class="info-view">
+                <div style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:0.5rem;">สวัสดีคุณ</div>
+                <h2 id="infoName" style="font-size:1.8rem; margin-bottom:1.5rem;" class="gradient-text">—</h2>
+
+                <div class="balance-card">
+                    <div class="balance-label">ยอดเงินคงเหลือ</div>
+                    <div class="balance-amount"
+                        style="display:flex; justify-content:space-between; align-items:flex-end;">
+                        <div><span class="balance-currency">฿</span><span id="infoBalance">0</span></div>
+                        <button class="btn-primary"
+                            style="padding: 0.4rem 1rem; width: auto; font-size: 0.9rem; border-radius: 25px;"
+                            onclick="openTopupModal()">
+                            <i class="fa-solid fa-plus"></i> เติมเงิน
+                        </button>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3><i class="fa-solid fa-location-dot"></i> ช่องบริการของคุณ</h3>
+                    <p>Bay <span id="infoBay">—</span></p>
+                </div>
+
+                <div class="info-card">
+                    <h3><i class="fa-solid fa-circle-info"></i> วิธีใช้งาน</h3>
+                    <p class="instruction-text">
+                        <i class="fa-solid fa-hand-point-right"></i>กดปุ่มที่หน้าตู้เพื่อเริ่มบริการ<br>
+                        <i class="fa-solid fa-droplet"></i>น้ำ &nbsp;|&nbsp; <i class="fa-solid fa-soap"></i>โฟม
+                        &nbsp;|&nbsp; <i class="fa-solid fa-wind"></i>ลม<br>
+                        <i class="fa-solid fa-star"></i>เคลือบสี &nbsp;|&nbsp; <i
+                            class="fa-solid fa-circle-dot"></i>ยางดำ
+                    </p>
+                </div>
+
+                <button class="btn-primary"
+                    style="background:transparent; border: 1px solid rgba(255,255,255,0.2); width:100%; margin-top:0.5rem;"
+                    onclick="logout()">
+                    <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+                </button>
+            </div>
+        </section>
+
+        <!-- QR Top-up Modal -->
+        <div id="topupModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-topbar"></div>
+                <div class="modal-inner">
+
+                    <!-- Header -->
+                    <div class="modal-title-row">
+                        <div style="display:flex; align-items:center; gap:0.6rem;">
+                            <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,#6366f1,#3b82f6); display:flex; align-items:center; justify-content:center; font-size:1rem;">
+                                <i class="fa-solid fa-wallet" style="color:white;"></i>
+                            </div>
+                            <span class="modal-title-text">เติมเงิน</span>
+                        </div>
+                        <button class="btn-x" onclick="closeTopupModal()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+
+                    <!-- Quick amount chips -->
+                    <p class="chip-label">เลือกจำนวนเร็ว</p>
+                    <div class="amount-chips">
+                        <button class="chip" onclick="setAmount(20)">฿20</button>
+                        <button class="chip" onclick="setAmount(50)">฿50</button>
+                        <button class="chip" onclick="setAmount(100)">฿100</button>
+                        <button class="chip" onclick="setAmount(200)">฿200</button>
+                    </div>
+
+                    <!-- Amount input -->
+                    <div class="topup-input-row">
+                        <span class="baht-sym">฿</span>
+                        <input type="number" id="topupAmount" placeholder="0" min="20">
+                    </div>
+
+                    <!-- Generate QR -->
+                    <button class="btn-gen" onclick="generateQR()">
+                        <i class="fa-solid fa-qrcode"></i> สร้าง QR Code
+                    </button>
+
+                    <!-- QR Result -->
+                    <div id="qrSection" class="hidden">
+                        <div class="qr-wrap">
+                            <div class="qr-wrap-label">สแกนชำระ · PromptPay</div>
+                            <div class="qr-card" id="qrContainer">
+                                <div style="width:180px;height:180px;display:flex;align-items:center;justify-content:center;color:#94a3b8;">โหลด...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn-dismiss" onclick="closeTopupModal()" style="margin-top:0.5rem;">ยกเลิก</button>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+    <script src="app.js?v=2"></script>
+</body>
+
+</html>

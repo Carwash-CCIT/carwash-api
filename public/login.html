@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Car Wash — Admin Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #030712 0%, #0f172a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Outfit', sans-serif;
+            color: #f8fafc;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 2rem;
+        }
+
+        .login-card {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 3rem 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .logo-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #f8fafc, #94a3b8);
+            color: #030712;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .logo-text h1 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .logo-text p {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 0.2rem;
+        }
+
+        .form-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .form-subtitle {
+            font-size: 0.9rem;
+            color: #64748b;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.85rem 1.1rem;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #f8fafc;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 0 3px rgba(248, 250, 252, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: #64748b;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 0.4rem;
+            border-radius: 10px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 0.65rem;
+            border: none;
+            background: transparent;
+            color: #64748b;
+            cursor: pointer;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #3b82f6, #6d28d9);
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 0.9rem;
+            margin-top: 0.5rem;
+            border: none;
+            background: linear-gradient(135deg, #3b82f6, #6d28d9);
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .error-message.show {
+            display: flex;
+        }
+
+        .success-message {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #6ee7b7;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .success-message.show {
+            display: flex;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 1.5rem 0;
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .otp-section {
+            display: none;
+        }
+
+        .otp-section.show {
+            display: block;
+        }
+
+        .loading {
+            display: inline-block;
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 600px) {
+            .login-card {
+                padding: 2rem 1.5rem;
+            }
+
+            .form-title {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <!-- Logo -->
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-car-side"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>Smart Car</h1>
+                    <p>Wash Admin</p>
+                </div>
+            </div>
+
+            <!-- Title -->
+            <div class="form-title">เข้าสู่ระบบ</div>
+            <div class="form-subtitle">ใส่ข้อมูลเพื่อเข้าถึง Dashboard</div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('email')">
+                    <i class="fa-solid fa-envelope" style="margin-right:0.4rem;"></i>อีเมล
+                </button>
+                <button class="tab" onclick="switchTab('phone')">
+                    <i class="fa-solid fa-phone" style="margin-right:0.4rem;"></i>เบอร์โทร
+                </button>
+            </div>
+
+            <!-- Messages -->
+            <div id="errorMessage" class="error-message">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span id="errorText"></span>
+            </div>
+            <div id="successMessage" class="success-message">
+                <i class="fa-solid fa-check-circle"></i>
+                <span id="successText"></span>
+            </div>
+
+            <!-- Email Tab -->
+            <div id="emailTab" class="tab-content active">
+                <form onsubmit="handleEmailLogin(event)">
+                    <div class="form-group">
+                        <label>อีเมล</label>
+                        <input type="email" id="emailInput" placeholder="admin@carwash.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>รหัสผ่าน</label>
+                        <input type="password" id="passwordInput" placeholder="อย่างน้อย 6 ตัวอักษร" required>
+                    </div>
+                    <button type="submit" class="login-btn" id="emailLoginBtn">
+                        <i class="fa-solid fa-sign-in-alt" style="margin-right:0.5rem;"></i>เข้าสู่ระบบ
+                    </button>
+                </form>
+            </div>
+
+            <!-- Phone OTP Tab -->
+            <div id="phoneTab" class="tab-content">
+                <div id="phoneRequestSection">
+                    <form onsubmit="handlePhoneRequest(event)">
+                        <div class="form-group">
+                            <label>เบอร์โทร</label>
+                            <input type="tel" id="phoneInput" placeholder="081234567" pattern="0[0-9]{9}" required>
+                        </div>
+                        <button type="submit" class="login-btn" id="phoneRequestBtn">
+                            <i class="fa-solid fa-sms" style="margin-right:0.5rem;"></i>ขอ OTP
+                        </button>
+                    </form>
+                </div>
+
+                <div id="phoneOtpSection" class="otp-section">
+                    <form onsubmit="handlePhoneOtp(event)">
+                        <div class="form-group">
+                            <label>รหัส OTP</label>
+                            <input type="text" id="otpInput" placeholder="ใส่รหัส 6 หลัก" maxlength="6" required>
+                        </div>
+                        <div class="form-group">
+                            <label>ชื่อ (ถ้าเป็นครั้งแรก)</label>
+                            <input type="text" id="nameInput" placeholder="ชื่อของคุณ">
+                        </div>
+                        <button type="submit" class="login-btn" id="phoneOtpBtn">
+                            <i class="fa-solid fa-check" style="margin-right:0.5rem;"></i>ยืนยัน
+                        </button>
+                        <button type="button" class="login-btn" style="background: rgba(255, 255, 255, 0.1); margin-top:0.5rem;" onclick="backToPhoneRequest()">
+                            <i class="fa-solid fa-arrow-left" style="margin-right:0.5rem;"></i>ย้อนกลับ
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000';
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            
+            if (tab === 'email') {
+                document.querySelector('.tab:nth-child(1)').classList.add('active');
+                document.getElementById('emailTab').classList.add('active');
+            } else {
+                document.querySelector('.tab:nth-child(2)').classList.add('active');
+                document.getElementById('phoneTab').classList.add('active');
+            }
+            clearMessages();
+        }
+
+        function showError(message) {
+            const el = document.getElementById('errorMessage');
+            document.getElementById('errorText').textContent = message;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 5000);
+        }
+
+        function showSuccess(message) {
+            const el = document.getElementById('successMessage');
+            document.getElementById('successText').textContent = message;
+            el.classList.add('show');
+        }
+
+        function clearMessages() {
+            document.getElementById('errorMessage').classList.remove('show');
+            document.getElementById('successMessage').classList.remove('show');
+        }
+
+        // Email Login
+        async function handleEmailLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('emailInput').value;
+            const password = document.getElementById('passwordInput').value;
+            const btn = document.getElementById('emailLoginBtn');
+
+            btn.disabled = true;
+            btn.classList.add('loading');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:0.5rem;"></i>กำลังตรวจสอบ...';
+
+            try {
+                const res = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identifier: email, password })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('refreshToken', data.refreshToken);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    showSuccess(data.message);
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                } else {
+                    showError(data.message || 'เข้าสู่ระบบไม่สำเร็จ');
+                }
+            } catch (err) {
+                showError('เกิดข้อผิดพลาด: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('loading');
+                btn.innerHTML = '<i class="fa-solid fa-sign-in-alt" style="margin-right:0.5rem;"></i>เข้าสู่ระบบ';
+            }
+        }
+
+        // Phone OTP Request
+        async function handlePhoneRequest(e) {
+            e.preventDefault();
+            const phone = document.getElementById('phoneInput').value;
+            const btn = document.getElementById('phoneRequestBtn');
+
+            btn.disabled = true;
+            btn.classList.add('loading');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:0.5rem;"></i>กำลังส่ง OTP...';
+
+            try {
+                const res = await fetch(`${API_BASE}/auth/login/request-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identifier: phone })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    showSuccess(data.message);
+                    document.getElementById('phoneRequestSection').classList.add('show');
+                    document.getElementById('phoneOtpSection').classList.add('show');
+                    document.getElementById('phoneRequestSection').style.display = 'none';
+                } else {
+                    showError(data.message || 'ส่ง OTP ไม่สำเร็จ');
+                }
+            } catch (err) {
+                showError('เกิดข้อผิดพลาด: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('loading');
+                btn.innerHTML = '<i class="fa-solid fa-sms" style="margin-right:0.5rem;"></i>ขอ OTP';
+            }
+        }
+
+        // Phone OTP Verify
+        async function handlePhoneOtp(e) {
+            e.preventDefault();
+            const phone = document.getElementById('phoneInput').value;
+            const otp = document.getElementById('otpInput').value;
+            const name = document.getElementById('nameInput').value;
+            const btn = document.getElementById('phoneOtpBtn');
+
+            btn.disabled = true;
+            btn.classList.add('loading');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:0.5rem;"></i>กำลังยืนยัน...';
+
+            try {
+                const res = await fetch(`${API_BASE}/auth/login/verify-otp`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        identifier: phone, 
+                        otp,
+                        name: name || phone
+                    })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('refreshToken', data.refreshToken);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    showSuccess(data.message);
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                } else {
+                    showError(data.message || 'ยืนยัน OTP ไม่สำเร็จ');
+                }
+            } catch (err) {
+                showError('เกิดข้อผิดพลาด: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('loading');
+                btn.innerHTML = '<i class="fa-solid fa-check" style="margin-right:0.5rem;"></i>ยืนยัน';
+            }
+        }
+
+        function backToPhoneRequest() {
+            document.getElementById('phoneRequestSection').style.display = 'block';
+            document.getElementById('phoneOtpSection').classList.remove('show');
+            clearMessages();
+        }
+
+        // Check if already logged in
+        window.addEventListener('load', () => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                window.location.href = '/';
+            }
+        });
+    </script>
+</body>
+</html>
