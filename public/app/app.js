@@ -276,7 +276,9 @@ async function fetchProfile() {
 
     try {
         const url = bayId !== '?' ? `/me?machine_id=${bayId}` : '/me';
-        const res = await fetch(url, { headers: { 'Authorization': token } });
+        const res = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` }  // ✅ แก้ไข: เพิ่ม Bearer
+        });
         const data = await res.json();
 
         if (res.ok) {
@@ -304,8 +306,11 @@ async function logout() {
     const token = localStorage.getItem('cw_token');
     if (token) {
         try {
-            await fetch('/auth/logout', { method: 'POST', headers: { 'Authorization': token } });
-        } catch (e) {}
+            await fetch('/auth/logout', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }  // ✅ แก้ไข: เพิ่ม Bearer
+            });
+        } catch (e) { }
     }
     localStorage.removeItem('cw_token');
     switchView('viewAuth');
@@ -343,7 +348,10 @@ async function generateQR() {
     try {
         const res = await fetch('/api/qr/create', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': token },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`  // ✅ แก้ไข: เพิ่ม Bearer
+            },
             body: JSON.stringify({ amount })
         });
         const data = await res.json();
@@ -351,15 +359,17 @@ async function generateQR() {
         if (!res.ok) {
             showToast(data.message || 'ไม่สามารถสร้าง QR ได้', 'error');
         } else {
-            // SCB ส่ง base64 image กลับมา
             currentQrRef = data.qrRef;
             currentQrAmount = amount;
-            
+
+            const imgSrc = data.qrImage.startsWith('http') || data.qrImage.startsWith('data:image')
+                ? data.qrImage
+                : `data:image/png;base64,${data.qrImage}`;
+
             document.getElementById('qrContainer').innerHTML =
-                `<img src="data:image/png;base64,${data.qrImage}" alt="QR PromptPay" style="width:180px;height:180px;">`;
+                `<img src="${imgSrc}" alt="QR PromptPay" style="width:180px;height:180px;">`;
             document.getElementById('qrSection').classList.remove('hidden');
             showToast('สแกน QR เพื่อชำระเงินได้เลย!');
-            // เริ่มตรวจสอบยอดเงินอัตโนมัติ
             startPaymentPolling();
         }
     } catch (e) {
@@ -382,7 +392,9 @@ function startPaymentPolling() {
         const token = localStorage.getItem('cw_token');
         if (!token) { clearInterval(_pollTimer); return; }
         try {
-            const res = await fetch('/me', { headers: { 'Authorization': token } });
+            const res = await fetch('/me', {
+                headers: { 'Authorization': `Bearer ${token}` }  // ✅ แก้ไข: เพิ่ม Bearer
+            });
             const data = await res.json();
             if (res.ok && parseFloat(data.user.balance) > prevBalance) {
                 clearInterval(_pollTimer);
@@ -390,8 +402,8 @@ function startPaymentPolling() {
                 showToast(`เติมเงินสำเร็จ ฿${data.user.balance - prevBalance}`);
                 closeTopupModal();
             }
-        } catch (e) {}
-    }, 5000); // เช็คทุก 5 วินาที
+        } catch (e) { }
+    }, 5000);
 }
 
 // ─── จำลองการจ่ายเงินสำเร็จ (Mock) ─────────────────────────────
@@ -415,7 +427,6 @@ async function simulateTopupSuccess() {
 
         if (res.ok) {
             showToast('จำลองการจ่ายเงินสำเร็จ! รอระบบอัปเดต...');
-            // startPaymentPolling จะทำงานอยู่แล้วจากการกด generateQR
         } else {
             showToast('จำลองการจ่ายเงินไม่สำเร็จ', 'error');
             btn.disabled = false;
@@ -426,6 +437,48 @@ async function simulateTopupSuccess() {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-check"></i> ชำระเงินสำเร็จ (Mock)';
     }
+}
+
+// ─── ยืนยันการจ่ายเงิน (ลูกค้ากดหลังสแกน QR) ──────────────────
+async function confirmPayment() {
+    if (!currentQrRef || !currentQrAmount) return showToast('ไม่พบข้อมูลการเติมเงิน', 'error');
+
+    const btn = document.getElementById('btnConfirmPay');
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังตรวจสอบ...';
+    btn.disabled = true;
+
+    const token = localStorage.getItem('cw_token');
+    if (!token) return showToast('กรุณาเข้าสู่ระบบก่อน', 'error');
+
+    try {
+        const res = await fetch('/api/topup/confirm', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                qrRef: currentQrRef,
+                amount: currentQrAmount
+            })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            showToast(`✅ เติมเงินสำเร็จ ฿${currentQrAmount}!`);
+            document.getElementById('infoBalance').textContent = data.balance;
+            currentQrRef = null;
+            currentQrAmount = 0;
+            closeTopupModal();
+        } else {
+            showToast(data.message || 'เกิดข้อผิดพลาด', 'error');
+        }
+    } catch (e) {
+        showToast('Connection Error', 'error');
+    }
+
+    btn.innerHTML = '<i class="fa-solid fa-check-circle"></i> ฉันจ่ายเงินแล้ว';
+    btn.disabled = false;
 }
 
 // ─── Start ─────────────────────────────────────────────────────

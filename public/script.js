@@ -83,8 +83,9 @@ function renderMachines(machines) {
     document.getElementById('statIdle')?.innerText !== undefined && (document.getElementById('statIdle').textContent = idle);
 
     el.innerHTML = machines.map(m => {
-        const isBusy = m.status === 'busy' && m.session_id;
-        const displayName = m.user_name || m.user_phone || m.user_email || null;
+        const isBusy = m.status === 'busy';
+        const hasSession = !!m.session_id;
+        const displayName = m.user_name || m.user_phone || m.user_email || 'แอดมิน (Admin)';
 
         return `
         <div class="bay-card ${isBusy ? 'busy' : 'idle'}" onclick="showSection('control'); selectBay(${m.id});" style="cursor:pointer;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
@@ -98,8 +99,8 @@ function renderMachines(machines) {
             <div class="bay-user-info">
                 ${isBusy ? `
                     <div>ผู้ใช้: <strong>${displayName}</strong></div>
-                    <div>ยอดเงิน: <strong style="color:#60a5fa">฿${m.user_balance ?? '—'}</strong></div>
-                    <div class="bay-elapsed" data-start="${m.start_time}">${getElapsed(m.start_time)}</div>
+                    ${hasSession ? `<div>ยอดเงิน: <strong style="color:#60a5fa">฿${m.user_balance ?? '—'}</strong></div>
+                    <div class="bay-elapsed" data-start="${m.start_time}">${getElapsed(m.start_time)}</div>` : '<div style="color:var(--muted); font-size:0.8rem; margin-top:4px;">ไม่มีเซสชันถูกหักเงิน</div>'}
                     <button onclick="forceResetBay(${m.id})" style="margin-top:0.5rem; padding:0.25rem 0.65rem; font-size:0.72rem; border-radius:8px; border:1px solid rgba(239,68,68,0.4); background:rgba(239,68,68,0.1); color:#f87171; cursor:pointer; font-family:'Outfit',sans-serif; font-weight:600; transition:all 0.2s;"
                         onmouseover="this.style.background='rgba(239,68,68,0.25)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'">⟳ Force Reset</button>
                 ` : '<span style="font-size:0.85rem;">ไม่มีผู้ใช้งาน</span>'}
