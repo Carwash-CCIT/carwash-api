@@ -439,47 +439,6 @@ async function simulateTopupSuccess() {
     }
 }
 
-// ─── ยืนยันการจ่ายเงิน (ลูกค้ากดหลังสแกน QR) ──────────────────
-async function confirmPayment() {
-    if (!currentQrRef || !currentQrAmount) return showToast('ไม่พบข้อมูลการเติมเงิน', 'error');
-
-    const btn = document.getElementById('btnConfirmPay');
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังตรวจสอบ...';
-    btn.disabled = true;
-
-    const token = localStorage.getItem('cw_token');
-    if (!token) return showToast('กรุณาเข้าสู่ระบบก่อน', 'error');
-
-    try {
-        const res = await fetch('/api/topup/confirm', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                qrRef: currentQrRef,
-                amount: currentQrAmount
-            })
-        });
-        const data = await res.json();
-
-        if (res.ok) {
-            showToast(`✅ เติมเงินสำเร็จ ฿${currentQrAmount}!`);
-            document.getElementById('infoBalance').textContent = data.balance;
-            currentQrRef = null;
-            currentQrAmount = 0;
-            closeTopupModal();
-        } else {
-            showToast(data.message || 'เกิดข้อผิดพลาด', 'error');
-        }
-    } catch (e) {
-        showToast('Connection Error', 'error');
-    }
-
-    btn.innerHTML = '<i class="fa-solid fa-check-circle"></i> ฉันจ่ายเงินแล้ว';
-    btn.disabled = false;
-}
 
 // ─── Start ─────────────────────────────────────────────────────
 init();

@@ -343,8 +343,13 @@ async function handleOTPRequest(identifier, isRegister, res) {
                 saveCode = generateOTP();
                 console.log(`🔑 [Mock] OTP สำหรับ ${identifier} คือ: ${saveCode}`);
                 
-                // อย่าเพิ่ง return 500 ปล่อยให้ระบบสร้าง OTP ในเครื่องแทน
-                // return res.status(500).json({ message: '❌ ไม่สามารถส่ง SMS ได้ ลองเช็คเครดิต' });
+                const expires = new Date(Date.now() + 5 * 60000);
+                if (!user) {
+                    db.run(`INSERT INTO users (${queryCol}, otp_code, otp_expires, otp_type, status) VALUES (?, ?, ?, ?, 'pending')`, [identifier, saveCode, expires.toISOString(), type]);
+                } else {
+                    db.run(`UPDATE users SET otp_code = ?, otp_expires = ?, otp_type = ? WHERE id = ?`, [saveCode, expires.toISOString(), type, user.id]);
+                }
+                return res.json({ message: `✅ (ทดสอบ) SMS หมด โค้ด OTP คือ: ${saveCode}` });
             }
         } else {
             const emailOtp = generateOTP();
@@ -1013,87 +1018,136 @@ app.post('/api/bay/:id/status', (req, res) => {
     });
 });
 
-// ─── PromptPay QR Payment ─────────────────────────────────────
-const generatePayload = require('promptpay-qr');
-const QRCode = require('qrcode');
+// ─── SCB QR Payment & Webhook ─────────────────────────────────
+const SCB_BASE = process.env.SCB_SANDBOX === 'true'
+    ? 'https://api-sandbox.partners.scb/partners/sandbox'
+    : 'https://api.partners.scb/partners';
 
-const PROMPTPAY_ID = process.env.PROMPTPAY_ID || '0967857324'; // เบอร์พร้อมเพย์ของร้าน
+let scbToken = null;
+let scbTokenExpires = 0;
+
+async function getScbToken() {
+    if (scbToken && Date.now() < scbTokenExpires) return scbToken;
+    try {
+        const resp = await axios.post(`${SCB_BASE}/v1/oauth/token`, {
+            applicationKey: process.env.SCB_API_KEY,
+            applicationSecret: process.env.SCB_API_SECRET
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+                'requestUID': crypto.randomUUID(),
+                'resourceOwnerID': process.env.SCB_API_KEY,
+                'accept-language': 'EN',
+                'channel': 'scbeasy'
+            }
+        });
+        scbToken = resp.data.data.accessToken;
+        scbTokenExpires = Date.now() + (resp.data.data.expiresIn - 60) * 1000;
+        console.log('✅ [SCB] ได้ Token ใหม่แล้ว');
+        return scbToken;
+    } catch (err) {
+        console.error('❌ [SCB] Token Error:', err.response?.data || err.message);
+        throw new Error('ไม่สามารถเชื่อมต่อ SCB API ได้');
+    }
+}
 
 app.post('/api/qr/create', authMiddleware, async (req, res) => {
     const { amount } = req.body;
     if (!validateAmount(amount)) return res.status(400).json({ message: '❌ จำนวนเงินไม่ถูกต้อง' });
 
+    const ref1 = `USR${req.user.id}`;
+    const ref2 = `AMT${amount}`;
     const qrRef = `CW${Date.now()}`;
 
     try {
-        // สร้าง PromptPay Payload จริง (มาตรฐาน EMVCo)
-        const payload = generatePayload(PROMPTPAY_ID, { amount: parseFloat(amount) });
-
-        // แปลง Payload เป็นรูป QR Code (Base64 PNG)
-        const qrImage = await QRCode.toDataURL(payload, {
-            width: 400,
-            margin: 2,
-            color: { dark: '#000000', light: '#ffffff' }
+        const token = await getScbToken();
+        const resp = await axios.post(`${SCB_BASE}/v1/payment/qrcode/create`, {
+            qrType: 'PP',
+            ppType: 'BILLERID',
+            ppId: process.env.SCB_BILLER_ID,
+            amount: amount.toString(),
+            ref1, ref2,
+            ref3: qrRef
+        }, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'requestUID': crypto.randomUUID(),
+                'resourceOwnerID': process.env.SCB_API_KEY,
+                'accept-language': 'EN',
+                'channel': 'scbeasy'
+            }
         });
 
-        // บันทึกข้อมูลรอตรวจสอบยอดเงินเข้า
+        const qrImage = resp.data.data?.qrImage;
+        if (!qrImage) throw new Error('SCB ไม่ส่ง QR Image กลับมา');
+
         db.run(
             `UPDATE users SET pending_qr_ref = ?, pending_qr_amount = ? WHERE id = ?`,
             [qrRef, amount, req.user.id]
         );
 
-        console.log(`📲 [PromptPay QR] สร้าง QR สำหรับ user ${req.user.id} จำนวน ฿${amount} → ${PROMPTPAY_ID}`);
+        console.log(`📲 [SCB QR] สร้าง QR สำหรับ user ${req.user.id} จำนวน ฿${amount}`);
         res.json({ qrImage, qrRef });
     } catch (err) {
-        console.error('❌ [QR Generate Error]:', err.message);
-        res.status(500).json({ message: '❌ ไม่สามารถสร้าง QR ได้: ' + err.message });
+        console.error('❌ [SCB QR] Error:', err.response?.data || err.message);
+        res.status(500).json({ message: '❌ ไม่สามารถสร้าง QR จาก SCB ได้' });
     }
 });
 
-// ─── ยืนยันการเติมเงินจากลูกค้า (หลังสแกน QR แล้ว) ──────────────
-app.post('/api/topup/confirm', authMiddleware, (req, res) => {
-    const { qrRef, amount } = req.body;
-    if (!qrRef || !validateAmount(amount)) {
-        return res.status(400).json({ message: '❌ ข้อมูลไม่ถูกต้อง' });
+// ─── SCB Webhook (รับแจ้งเตือนเมื่อเงินเข้า) ────────────────────────
+// SCB จะส่ง POST Request มาที่นี่เมื่อมีการชำระเงินสำเร็จ
+app.post('/webhook/scb', async (req, res) => {
+    console.log('🔔 [SCB Webhook] ได้รับข้อมูล:', JSON.stringify(req.body));
+    
+    // โครงสร้าง Payload ของ SCB Webhook (อ้างอิงจาก SCB Developer Portal)
+    const data = req.body;
+    const qrRef = data.reference3; // เราแนบ qrRef ไปใน ref3 ตอนสร้าง QR
+    const topupAmount = parseFloat(data.amount);
+
+    if (!qrRef || !topupAmount) {
+        console.warn('⚠️ [SCB Webhook] ข้อมูลมาไม่ครบ หรือไม่ใช่รายการจ่ายเงินที่ถูกต้อง');
+        return res.status(400).json({ resCode: '99', resDesc: 'Invalid Format' });
     }
 
-    // ตรวจสอบว่า qrRef ตรงกับที่สร้างไว้ให้ผู้ใช้คนนี้
+    // ไปหาว่ามี pending qr รหัสนี้อยู่กับใคร
     db.get(
-        `SELECT * FROM users WHERE id = ? AND pending_qr_ref = ?`,
-        [req.user.id, qrRef],
+        `SELECT * FROM users WHERE pending_qr_ref = ?`,
+        [qrRef],
         (err, user) => {
             if (err || !user) {
-                return res.status(400).json({ message: '❌ ไม่พบรายการ QR ที่สร้างไว้ หรือหมดอายุแล้ว' });
+                console.warn(`⚠️ [SCB Webhook] ไม่พบรายการสร้าง QR (Ref: ${qrRef}) หรือเติมเงินไปแล้ว ยอด ฿${topupAmount}`);
+                // รีเทิร์น 00 (Success) เพื่อให้ SCB เลิกพยายามส่งซ้ำ
+                return res.status(200).json({ resCode: '00', resDesc: 'Success (But ignored locally)' }); 
             }
 
-            const topupAmount = parseFloat(amount);
             const newBalance = user.balance + topupAmount;
 
-            // บวกเงินเข้ากระเป๋า
+            // อัปเดตเงิน และล้างรหัส qrRef เพื่อป้องกันเงินเข้าซ้ำสองครั้ง
             db.run("UPDATE users SET balance = ?, pending_qr_ref = NULL, pending_qr_amount = NULL WHERE id = ?",
-                [newBalance, req.user.id], (err2) => {
-                    if (err2) return res.status(500).json({ message: '❌ เติมเงินไม่สำเร็จ' });
+                [newBalance, user.id], (err2) => {
+                    if (err2) {
+                        console.error('❌ [SCB Webhook] อัปเดตเงินในฐานข้อมูลล้มเหลว', err2);
+                        return res.status(500).json({ resCode: '99', resDesc: 'Internal Server Error' });
+                    }
 
-                    // บันทึก Transaction
+                    // บันทึก Log Transaction
                     db.run(
-                        "INSERT INTO transactions (user_id, action_type, amount) VALUES (?, 'topup_qr', ?)",
-                        [req.user.id, topupAmount]
+                        "INSERT INTO transactions (user_id, action_type, amount) VALUES (?, 'topup_scb', ?)",
+                        [user.id, topupAmount]
                     );
 
                     // Sync to Google Sheets
                     syncToGoogleSheets({
-                        userId: req.user.id,
+                        userId: user.id,
                         userName: user.name,
                         userPhone: user.phone || user.email,
                         amount: topupAmount,
-                        action: 'topup_qr'
+                        action: 'topup_scb'
                     });
 
-                    console.log(`💰 [TopUp] User ${req.user.id} เติมเงิน ฿${topupAmount} ผ่าน PromptPay QR (Ref: ${qrRef}) ยอดใหม่: ฿${newBalance}`);
-                    res.json({
-                        message: `✅ เติมเงิน ฿${topupAmount} สำเร็จ!`,
-                        balance: newBalance
-                    });
+                    console.log(`💸 [TopUp] User ${user.id} เติมเงินผ่าน SCB Webhook ฿${topupAmount} (Ref: ${qrRef}) ยอดใหม่: ฿${newBalance}`);
+                    res.status(200).json({ resCode: '00', resDesc: 'Success', transactionId: data.transactionId });
                 }
             );
         }
