@@ -43,28 +43,34 @@ function initGoogleSignIn() {
     google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: handleGoogleCallback,
-        auto_select: false
+        auto_select: false,
+        cancel_on_tap_outside: true,
+        prompt_parent_id: 'viewAuth' // ช่วยให้ One Tap แสดงผลได้ดีขึ้น
     });
+    
+    // Render the standard button as a fallback/primary option
+    google.accounts.id.renderButton(
+        document.getElementById('btnGoogleSignIn'),
+        { 
+            theme: 'outline', 
+            size: 'large', 
+            width: document.getElementById('btnGoogleSignIn').offsetWidth,
+            text: 'signin_with',
+            shape: 'rectangular',
+            logo_alignment: 'left'
+        }
+    );
+    
     console.log('✅ Google Sign-In initialized');
 }
 
 // ─── Google Sign-In Trigger ────────────────────────────────────
 function googleSignIn() {
-    if (typeof google === 'undefined' || !google.accounts) {
-        showToast('Google Sign-In ยังไม่พร้อม กรุณารอสักครู่', 'error');
-        return;
+    // ฟังก์ชันนี้ตอนนี้อาจไม่ได้ถูกเรียกโดยตรงหากใช้ renderButton
+    // แต่เราใส่ไว้เพื่อเป็นทางเลือกในการเรียก prompt
+    if (typeof google !== 'undefined' && google.accounts) {
+        google.accounts.id.prompt();
     }
-    google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            // Fallback: use popup mode
-            google.accounts.id.renderButton(
-                document.createElement('div'),
-                { theme: 'outline', size: 'large' }
-            );
-            // Try One Tap again or use redirect
-            showToast('กรุณาอนุญาต Popup หรือลองใหม่อีกครั้ง', 'error');
-        }
-    });
 }
 
 // ─── Google Callback ───────────────────────────────────────────
