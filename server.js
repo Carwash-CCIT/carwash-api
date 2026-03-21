@@ -136,13 +136,18 @@ const db = new sqlite3.Database(dbPath, (err) => {
             phone TEXT UNIQUE,
             email TEXT UNIQUE,
             password TEXT,
+            google_id VARCHAR(255) UNIQUE,
+            google_picture TEXT,
             name TEXT,
             balance INTEGER DEFAULT 0,
             status TEXT DEFAULT 'active',
             token TEXT,
+            refresh_token TEXT,
+            token_expires DATETIME,
             otp_code TEXT,
             otp_expires DATETIME,
             otp_type TEXT,
+            role TEXT DEFAULT 'user',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
 
@@ -169,12 +174,16 @@ const db = new sqlite3.Database(dbPath, (err) => {
         )`);
 
         // Migration for existing tables
-        db.run("ALTER TABLE machines ADD COLUMN pending_command TEXT DEFAULT NULL", () => { });
-        db.run("ALTER TABLE users ADD COLUMN pending_qr_ref TEXT DEFAULT NULL", () => { });
-        db.run("ALTER TABLE users ADD COLUMN pending_qr_amount REAL DEFAULT NULL", () => { });
-        db.run("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'", () => { });
-        db.run("ALTER TABLE users ADD COLUMN token_expires DATETIME", () => { });
-        db.run("ALTER TABLE users ADD COLUMN refresh_token TEXT", () => { });
+        db.run("ALTER TABLE machines ADD COLUMN pending_command TEXT DEFAULT NULL", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration (machines.pending_command):', err.message); });
+        db.run("ALTER TABLE users ADD COLUMN pending_qr_ref TEXT DEFAULT NULL", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration (users.pending_qr_ref):', err.message); });
+        db.run("ALTER TABLE users ADD COLUMN pending_qr_amount REAL DEFAULT NULL", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration (users.pending_qr_amount):', err.message); });
+        db.run("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration (users.role):', err.message); });
+        db.run("ALTER TABLE users ADD COLUMN token_expires DATETIME", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration (users.token_expires):', err.message); });
+        db.run("ALTER TABLE users ADD COLUMN refresh_token TEXT", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration (users.refresh_token):', err.message); });
+        db.run("ALTER TABLE users ADD COLUMN google_id TEXT", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration (users.google_id):', err.message); });
+        db.run("ALTER TABLE users ADD COLUMN google_picture TEXT", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration (users.google_picture):', err.message); });
+        // Create unique index for google_id
+        db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id)", (err) => { if (err) console.log('ℹ️ Migration (index google_id):', err.message); });
     });
 });
 
@@ -331,7 +340,10 @@ app.post('/auth/google', async (req, res) => {
 
         // Check if user exists
         db.get("SELECT * FROM users WHERE google_id = ?", [googleId], (err, user) => {
-            if (err) return res.status(500).json({ message: '❌ Database error' });
+            if (err) {
+                console.error('❌ [Google Auth] Database error:', err.message);
+                return res.status(500).json({ message: '❌ Database error' });
+            }
 
             if (user) {
                 // User exists - login

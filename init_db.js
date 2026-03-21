@@ -28,11 +28,14 @@ db.serialize(() => {
         balance INTEGER DEFAULT 0,
         status TEXT DEFAULT 'active',
         token TEXT,
+        refresh_token TEXT,
+        token_expires DATETIME,
         otp_code TEXT,
         otp_expires DATETIME,
         otp_type TEXT,
+        role TEXT DEFAULT 'user',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);;
+    )`);
 
     db.run(`CREATE TABLE IF NOT EXISTS machines (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
