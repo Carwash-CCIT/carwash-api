@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Car Wash — Login with Google</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #030712 0%, #0f172a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Outfit', sans-serif;
+            color: #f8fafc;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 2rem;
+        }
+
+        .login-card {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 3rem 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .logo-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #f8fafc, #94a3b8);
+            color: #030712;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .logo-text h1 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .logo-text p {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 0.2rem;
+        }
+
+        .form-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .form-subtitle {
+            font-size: 0.9rem;
+            color: #64748b;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .messages {
+            margin-bottom: 1.5rem;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .error-message.show {
+            display: flex;
+        }
+
+        .success-message {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #6ee7b7;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .success-message.show {
+            display: flex;
+        }
+
+        .google-button-container {
+            display: flex;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+
+        #g_id_onload {
+            data-client_id: "1015275273603-ch7v0cops75lc14gib41q0cfv66ntb5v.apps.googleusercontent.com";
+            data-callback: "handleCredentialResponse";
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 2rem 0;
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.85rem 1.1rem;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #f8fafc;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .form-group input::placeholder {
+            color: #64748b;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 0.9rem;
+            border: none;
+            background: linear-gradient(135deg, #3b82f6, #6d28d9);
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: inline-block;
+            opacity: 0.7;
+        }
+
+        .bay-selector {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .bay-selector label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .bay-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+
+        .bay-btn {
+            padding: 0.65rem;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.04);
+            color: #94a3b8;
+            cursor: pointer;
+            text-align: center;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .bay-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #f8fafc;
+        }
+
+        .bay-btn.selected {
+            background: linear-gradient(135deg, #3b82f6, #6d28d9);
+            border-color: #3b82f6;
+            color: white;
+        }
+
+        @media (max-width: 600px) {
+            .login-card {
+                padding: 2rem 1.5rem;
+            }
+
+            .form-title {
+                font-size: 1.2rem;
+            }
+
+            .bay-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <!-- Logo -->
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-car-side"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>Smart Car</h1>
+                    <p>Wash System</p>
+                </div>
+            </div>
+
+            <!-- Title -->
+            <div class="form-title">เข้าสู่ระบบ</div>
+            <div class="form-subtitle">ใช้บัญชี Google ของคุณ</div>
+
+            <!-- Messages -->
+            <div class="messages">
+                <div id="errorMessage" class="error-message">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span id="errorText"></span>
+                </div>
+                <div id="successMessage" class="success-message">
+                    <i class="fa-solid fa-check-circle"></i>
+                    <span id="successText"></span>
+                </div>
+            </div>
+
+            <!-- Google Sign-In -->
+            <div class="google-button-container">
+                <div id="g_id_onload"
+                    data-client_id="1015275273603-ch7v0cops75lc14gib41q0cfv66ntb5v.apps.googleusercontent.com"
+                    data-callback="handleCredentialResponse">
+                </div>
+                <div id="g_id_signin" data-type="standard" data-size="large" data-theme="dark"></div>
+            </div>
+
+            <!-- Bay Selector (Optional) -->
+            <div class="bay-selector">
+                <label>เลือกช่อง (ไม่จำเป็น)</label>
+                <div class="bay-grid" id="bayGrid">
+                    <!-- Generated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Hidden bay input -->
+            <input type="hidden" id="selectedBay" value="">
+        </div>
+    </div>
+
+    <script>
+        let selectedBay = null;
+
+        // Generate bay buttons
+        window.addEventListener('load', () => {
+            const bayGrid = document.getElementById('bayGrid');
+            for (let i = 1; i <= 6; i++) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'bay-btn';
+                btn.textContent = `Bay ${i}`;
+                btn.onclick = () => selectBay(i, btn);
+                bayGrid.appendChild(btn);
+            }
+        });
+
+        function selectBay(bayNum, btn) {
+            // Remove previous selection
+            document.querySelectorAll('.bay-btn').forEach(b => b.classList.remove('selected'));
+            // Add selection to clicked button
+            btn.classList.add('selected');
+            selectedBay = bayNum;
+            document.getElementById('selectedBay').value = bayNum;
+        }
+
+        function handleCredentialResponse(response) {
+            // response.credential contains the JWT
+            const token = response.credential;
+            
+            // Decode JWT manually (don't trust client-side only - server will verify)
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            
+            const payload = JSON.parse(jsonPayload);
+            console.log('Google ID Token:', payload);
+
+            // Send to backend for verification
+            loginWithGoogle(token);
+        }
+
+        function showError(message) {
+            const el = document.getElementById('errorMessage');
+            document.getElementById('errorText').textContent = message;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 5000);
+        }
+
+        function showSuccess(message) {
+            const el = document.getElementById('successMessage');
+            document.getElementById('successText').textContent = message;
+            el.classList.add('show');
+        }
+
+        async function loginWithGoogle(idToken) {
+            try {
+                const bayId = selectedBay || null;
+                const res = await fetch('/auth/google', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        idToken,
+                        machine_id: bayId
+                    })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('refreshToken', data.refreshToken);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    showSuccess(data.message);
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                } else {
+                    showError(data.message || 'Login failed');
+                }
+            } catch (err) {
+                showError('Error: ' + err.message);
+            }
+        }
+
+        // Check if already logged in
+        window.addEventListener('load', () => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                window.location.href = '/';
+            }
+        });
+
+        // Handle Google Sign-In button
+        window.onload = function() {
+            google.accounts.id.initialize({
+                client_id: '1015275273603-ch7v0cops75lc14gib41q0cfv66ntb5v.apps.googleusercontent.com',
+                callback: handleCredentialResponse
+            });
+            google.accounts.id.renderButton(
+                document.getElementById('g_id_signin'),
+                { 
+                    theme: 'dark',
+                    size: 'large',
+                    text: 'signin_with'
+                }
+            );
+        };
+    </script>
+</body>
+</html>

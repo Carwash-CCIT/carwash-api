@@ -22,6 +22,8 @@ db.serialize(() => {
         phone TEXT UNIQUE,
         email TEXT UNIQUE,
         password TEXT,
+        google_id VARCHAR(255) UNIQUE,
+        google_picture TEXT,
         name TEXT,
         balance INTEGER DEFAULT 0,
         status TEXT DEFAULT 'active',
@@ -30,7 +32,7 @@ db.serialize(() => {
         otp_expires DATETIME,
         otp_type TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
+    )`);;
 
     db.run(`CREATE TABLE IF NOT EXISTS machines (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
