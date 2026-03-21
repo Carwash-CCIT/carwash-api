@@ -20,7 +20,13 @@ const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
 
 // Initialize Google OAuth Client
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+let googleClient = null;
+if (process.env.GOOGLE_CLIENT_ID) {
+    googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    console.log('✅ Google OAuth Client initialized');
+} else {
+    console.warn('⚠️ GOOGLE_CLIENT_ID not configured');
+}
 
 // ─── FIREBASE INIT ──────────────────────────────────────────
 const admin = require('firebase-admin');
@@ -303,6 +309,10 @@ app.use((err, req, res, next) => {
 
 // ─── GOOGLE OAUTH ──────────────────────────────────────────────
 app.post('/auth/google', async (req, res) => {
+    if (!googleClient) {
+        return res.status(500).json({ message: '❌ Google OAuth not configured (GOOGLE_CLIENT_ID missing)' });
+    }
+    
     const { idToken, machine_id } = req.body;
     if (!idToken) return res.status(400).json({ message: '❌ ระบุ idToken' });
 
