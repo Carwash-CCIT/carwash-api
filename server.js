@@ -1167,6 +1167,65 @@ app.get('/user/:identifier', (req, res) => {
     });
 });
 
+// ─── ESP8266 Additional APIs ──────────────────────────────────
+
+// Get session info for current bay
+app.get('/api/bay/:id/session', (req, res) => {
+    const machine_id = parseInt(req.params.id);
+    db.get(`
+        SELECT 
+            s.id,
+            s.user_id,
+            s.machine_id,
+            s.status,
+            s.reserved_amount,
+            u.name,
+            u.balance,
+            u.phone,
+            u.email
+        FROM sessions s
+        LEFT JOIN users u ON s.user_id = u.id
+        WHERE s.machine_id = ? AND s.status = 'active'
+        ORDER BY s.id DESC LIMIT 1
+    `, [machine_id], (err, session) => {
+        if (err || !session) {
+            return res.json({
+                session: null,
+                message: 'ไม่มี session ที่กำลังใช้งาน'
+            });
+        }
+        res.json({
+            session: {
+                id: session.id,
+                user_id: session.user_id,
+                user_name: session.name,
+                user_balance: session.balance,
+                user_phone: session.phone,
+                user_email: session.email,
+                reserved_amount: session.reserved_amount,
+                status: session.status
+            },
+            message: '✅ Session found'
+        });
+    });
+});
+
+// Get pricing info
+app.get('/api/pricing', (req, res) => {
+    res.json({
+        pricing: {
+            WATER_ON: 5,      // บาท/นาที
+            FOAM_ON: 8,       // บาท/นาที
+            AIR_ON: 3,        // บาท/นาที
+            WAX_ON: 15,       // บาท/นาที
+            TYRE_ON: 10       // บาท/นาที
+        },
+        minimum_balance: 10,  // ยอดขั้นต่ำสำหรับใช้บริการ
+        currency: 'THB',
+        message: '✅ Pricing information'
+    });
+});
+
 // ─── ESP8266 HTTP Polling API ──────────────────────────────────
 
 app.get('/api/bay/:id/command', (req, res) => {
