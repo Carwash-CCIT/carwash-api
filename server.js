@@ -1,3 +1,5 @@
+// Note: Google Sheets sync function removed - using local database only
+
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
@@ -196,28 +198,6 @@ function generateToken() {
     return crypto.randomBytes(32).toString('hex');
 }
 
-async function syncToGoogleSheets(data) {
-    const sheetApiUrl = 'https://script.google.com/macros/s/AKfycbwCSDt4aoxyrnU9TIrEiFZtDbGcoah_VN0mw38fzYc9KNUG6XQDTGZ6bqZ7YxpIBDUr/exec';
-    const sheetData = {
-        timestamp: new Date().toISOString(),
-        userId: data.userId,
-        userName: data.userName,
-        userPhone: data.userPhone,
-        amount: data.amount,
-        action: data.action || 'topup',
-        transactionId: data.transactionId || 'MANUAL'
-    };
-
-    try {
-        const response = await axios.post(sheetApiUrl, sheetData);
-        console.log(`✅ [Google Sheets] Sync successful: ${response.data}`);
-        return true;
-    } catch (err) {
-        console.error(`❌ [Google Sheets] Sync failed: ${err.message}`);
-        return false;
-    }
-}
-
 function generateAccessToken(userId, expiresIn = '1h') {
     // Simple JWT-like format (ในกรณีจริง ควรใช้ jsonwebtoken library)
     const payload = {
@@ -317,6 +297,98 @@ app.use((err, req, res, next) => {
 // ─── AUTH APIs ─────────────────────────────────────────────────
 
 // ─── GOOGLE OAUTH ──────────────────────────────────────────────
+
+// Google OAuth Callback endpoint - called by Google after user authorizes
+app.get('/auth/google/callback', async (req, res) => {
+    const { code, state } = req.query;
+    
+    if (!code) {
+        return res.status(400).json({ message: '❌ Authorization code missing' });
+    }
+
+    if (!googleClient) {
+        return res.status(500).json({ message: '❌ Google OAuth not configured' });
+    }
+
+    try {
+        // Exchange authorization code for tokens using OAuth2 flow
+        const { tokens } = await googleClient.getToken(code);
+        
+        // Verify the ID token
+        const ticket = await googleClient.verifyIdToken({
+            idToken: tokens.id_token,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+
+        const payload = ticket.getPayload();
+        const googleId = payload.sub;
+        const email = payload.email;
+        const name = payload.name;
+        const picture = payload.picture;
+        const machineId = state ? decodeURIComponent(state) : null;
+
+        // Check if user exists
+        db.get("SELECT * FROM users WHERE google_id = ?", [googleId], (err, user) => {
+            if (err) {
+                console.error('❌ [Google Callback] Database error:', err.message);
+                return res.redirect(`/auth-error?error=database_error`);
+            }
+
+            const token = generateToken();
+            const refreshToken = generateToken();
+            const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+            if (user) {
+                // User exists - login
+                db.run(
+                    "UPDATE users SET token = ?, refresh_token = ?, token_expires = ? WHERE id = ?",
+                    [token, refreshToken, tokenExpires.toISOString(), user.id],
+                    (err2) => {
+                        if (err2) {
+                            console.error(err2);
+                            return res.redirect(`/auth-error?error=login_failed`);
+                        }
+
+                        createSessionForBay(user.id, machineId);
+                        
+                        // Redirect to frontend with tokens
+                        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+                        const redirectUrl = `${frontendUrl}/auth-success?token=${encodeURIComponent(token)}&refreshToken=${encodeURIComponent(refreshToken)}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`;
+                        console.log(`✅ [Google OAuth] User ${user.id} logged in via callback`);
+                        res.redirect(redirectUrl);
+                    }
+                );
+            } else {
+                // New user - auto register
+                db.run(
+                    `INSERT INTO users (google_id, email, name, google_picture, balance, status, token, refresh_token, token_expires) 
+                     VALUES (?, ?, ?, ?, 0, 'active', ?, ?, ?)`,
+                    [googleId, email, name, picture, token, refreshToken, tokenExpires.toISOString()],
+                    function (err2) {
+                        if (err2) {
+                            console.error('Insert error:', err2);
+                            return res.redirect(`/auth-error?error=registration_failed`);
+                        }
+
+                        const userId = this.lastID;
+                        createSessionForBay(userId, machineId);
+
+                        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+                        const redirectUrl = `${frontendUrl}/auth-success?token=${encodeURIComponent(token)}&refreshToken=${encodeURIComponent(refreshToken)}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`;
+                        console.log(`✅ [Google OAuth] New user ${userId} registered and logged in via callback`);
+                        res.redirect(redirectUrl);
+                    }
+                );
+            }
+        });
+    } catch (error) {
+        console.error('❌ Google callback error:', error);
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        res.redirect(`${frontendUrl}/auth-error?error=${encodeURIComponent(error.message)}`);
+    }
+});
+
+// POST endpoint for direct ID Token verification (for spa/mobile apps)
 app.post('/auth/google', async (req, res) => {
     if (!googleClient) {
         return res.status(500).json({ message: '❌ Google OAuth not configured (GOOGLE_CLIENT_ID missing)' });
@@ -753,14 +825,7 @@ app.post('/topup', authMiddleware, (req, res) => {
             [req.user.id, amount]
         );
         
-        // Sync to Google Sheets
-        syncToGoogleSheets({
-            userId: req.user.id,
-            userName: req.user.name,
-            userPhone: req.user.phone || req.user.email,
-            amount: amount,
-            action: 'topup_manual'
-        });
+        // Note: Google Sheets sync disabled - using local database only
 
         res.json({ message: `✅ เติมเงิน ฿${amount} สำเร็จ!`, balance: newBalance });
     });
@@ -930,14 +995,7 @@ app.post('/admin/topup', (req, res) => {
             if (err2) return res.status(500).json({ message: '❌ เติมเงินไม่สำเร็จ' });
             db.run("INSERT INTO transactions (user_id, action_type, amount) VALUES (?, 'topup', ?)", [user_id, amount]);
             
-            // Sync to Google Sheets
-            syncToGoogleSheets({
-                userId: user_id,
-                userName: user.name,
-                userPhone: user.phone || user.email,
-                amount: amount,
-                action: 'admin_topup'
-            });
+            // Note: Google Sheets sync disabled - using local database only
 
             res.json({ message: `✅ เติมเงิน ฿${amount} ให้ ${user.name || user.phone || user.email} สำเร็จ!`, balance: newBalance });
         });
@@ -1256,14 +1314,7 @@ app.post('/webhook/scb', async (req, res) => {
                         [user.id, topupAmount]
                     );
 
-                    // Sync to Google Sheets
-                    syncToGoogleSheets({
-                        userId: user.id,
-                        userName: user.name,
-                        userPhone: user.phone || user.email,
-                        amount: topupAmount,
-                        action: 'topup_scb'
-                    });
+                    // Note: Google Sheets sync disabled - using local database only
 
                     console.log(`💸 [TopUp] User ${user.id} เติมเงินผ่าน SCB Webhook ฿${topupAmount} (Ref: ${qrRef}) ยอดใหม่: ฿${newBalance}`);
                     res.status(200).json({ resCode: '00', resDesc: 'Success', transactionId: data.transactionId });
@@ -1322,15 +1373,7 @@ app.post('/webhook/scb', async (req, res) => {
                             );
                             console.log(`✅ [SCB Webhook] เติมเงิน ฿${topupAmount} ให้ user ${user.id} สำเร็จ`);
 
-                            // --- Sync to Google Sheets ---
-                            syncToGoogleSheets({
-                                userId: user.id,
-                                userName: user.name,
-                                userPhone: user.phone || user.email,
-                                amount: topupAmount,
-                                action: 'topup_qr',
-                                transactionId: transactionId || ref3
-                            });
+                            // Note: Google Sheets sync disabled - using local database only
                         }
                     }
                 );

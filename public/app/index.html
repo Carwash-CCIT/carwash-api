@@ -887,55 +887,15 @@
         <section id="viewAuth" class="glass-panel auth-view">
             <div class="auth-icon"><i class="fa-solid fa-car-tunnel"></i></div>
             <h2 class="gradient-text" id="authTitle" style="font-size:1.8rem; margin-bottom:0.4rem;">Smart Car Wash</h2>
-            <div class="bay-badge" id="bayBadge" style="margin-bottom:1.2rem;">
+            <div class="bay-badge" id="bayBadge" style="margin-bottom:2rem;">
                 <i class="fa-solid fa-hashtag"></i><span id="bayBadgeText">กำลังโหลด...</span>
             </div>
 
-            <div class="tab-bar">
-                <button class="tab-btn active" id="tabLogin" onclick="setAuthMode('login')">เข้าสู่ระบบ</button>
-                <button class="tab-btn" id="tabRegister" onclick="setAuthMode('register')">สมัครสมาชิก</button>
-            </div>
+            <p style="color:var(--text-secondary); margin-bottom:1.5rem; font-size:0.95rem;">เข้าสู่ระบบด้วยบัญชี Google ของคุณเพื่อเริ่มต้นใช้งาน</p>
 
-            <div class="input-group-vertical">
-                <input type="text" id="loginName" placeholder="ชื่อของคุณ" class="hidden" autocomplete="name">
-                <input type="text" id="loginId" placeholder="เบอร์โทร / Gmail" autocomplete="username"
-                    oninput="checkInputType()">
-                <input type="password" id="loginPassword" placeholder="ตั้งรหัสผ่าน (เฉพาะ Gmail)" class="hidden">
-
-                <button class="btn-primary" onclick="requestOTP()" id="btnRequestOtp">
-                    <i class="fa-solid fa-paper-plane"></i> ขอรหัส OTP
-                </button>
-                <button class="btn-primary hidden" onclick="loginWithPassword()" id="btnLoginPassword">
-                    <i class="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบ
-                </button>
-            </div>
-
-            <div class="auth-divider">หรือ</div>
-
-            <button class="btn-google" id="btnGoogleSignIn" onclick="googleSignIn()">
-                <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                เข้าสู่ระบบด้วย Google
-            </button>
+            <div id="btnGoogleSignIn" style="display: flex; justify-content: center; margin-bottom: 1rem;"></div>
 
             <p class="result-text" id="authMessage" style="margin-top:1rem; text-align:center;"></p>
-        </section>
-
-        <!-- ══════ OTP VIEW ══════ -->
-        <section id="viewOTP" class="glass-panel auth-view hidden" style="position:relative;">
-            <button class="btn-icon" onclick="switchView('viewAuth')" style="position:absolute;top:1rem;left:1rem;"><i
-                    class="fa-solid fa-arrow-left"></i></button>
-            <div class="auth-icon"><i class="fa-solid fa-lock"></i></div>
-            <h2 style="margin-bottom:0.5rem;">ยืนยันรหัส OTP</h2>
-            <p style="color:var(--text-secondary); font-size:0.9rem;">ส่งรหัสไปที่ <b id="displayId"
-                    style="color:white;"></b></p>
-            <div class="otp-inputs">
-                <input type="number" id="otpCode" placeholder="••••••"
-                    style="text-align:center; letter-spacing:10px; font-size:1.5rem; font-weight:600;"
-                    oninput="if(this.value.length===6) verifyOTP()">
-            </div>
-            <button class="btn-primary" onclick="verifyOTP()" id="btnVerifyOtp" style="width:100%;">
-                ยืนยัน
-            </button>
         </section>
 
         <!-- ══════ INFO VIEW (หลัง Login สำเร็จ) ══════ -->

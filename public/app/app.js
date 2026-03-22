@@ -1,24 +1,19 @@
 // ─── URL Params ────────────────────────────────────────────────
-let resendTimer = null;
-let resendSeconds = 60;
 const params = new URLSearchParams(window.location.search);
 const bayId = params.get('bay') || '?';
 
 // ─── Google OAuth ──────────────────────────────────────────────
 const GOOGLE_CLIENT_ID = '1015275273603-ch7v0cops75lc14gib41q0cfv66ntb5v.apps.googleusercontent.com';
-let googleTokenClient = null;
 
 // ─── Init Bay UI ───────────────────────────────────────────────
 document.getElementById('bayBadgeText').textContent = bayId !== '?' ? `ช่อง Bay ${bayId}` : 'ไม่ระบุช่อง';
 
 // ─── View Elements ─────────────────────────────────────────────
 const viewAuth = document.getElementById('viewAuth');
-const viewOTP = document.getElementById('viewOTP');
 const viewInfo = document.getElementById('viewInfo');
 const toastEl = document.getElementById('toast');
 
 // ─── State ─────────────────────────────────────────────────────
-let authMode = 'login';
 let currentQrRef = null;
 let currentQrAmount = 0;
 
@@ -117,7 +112,7 @@ function showToast(msg, type = 'success') {
 
 // ─── Switch Views ──────────────────────────────────────────────
 function switchView(id) {
-    [viewAuth, viewOTP, viewInfo].forEach(el => el.classList.add('hidden'));
+    [viewAuth, viewInfo].forEach(el => el.classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
 }
 
