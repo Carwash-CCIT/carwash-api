@@ -8,20 +8,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* ─── Base Variables - Crimson Red Theme ─── */
+        /* ─── Base Variables - Subtle Slate & Teal Theme ─── */
         :root {
-            --primary-color: #dc2626;          /* Crimson Red (Pig's Blood) */
-            --primary-light: #ef4444;          /* Lighter Red */
-            --primary-dark: #991b1b;           /* Darker Red */
-            --accent-red: #dc2626;             /* Main Red */
-            --accent-light: #fecaca;           /* Light Red */
+            --primary-color: #4b5563;          /* Dark Slate Grey */
+            --primary-light: #6b7a89;          /* Light Slate */
+            --primary-dark: #2d3748;           /* Very Dark Slate */
+            --accent-teal: #4a9b8e;            /* Subtle Teal Accent */
+            --accent-light: #7cc3b5;           /* Light Teal */
             --bg-slate: #0f0f0f;               /* Near Black */
             --bg-card: #1a1a1a;                /* Dark Grey */
-            --success: #10b981;                /* Green (Keep) */
-            --danger: #ef4444;                 /* Red Alert */
+            --success: #10b981;                /* Green */
+            --danger: #6b7a89;                 /* Grey */
             --text-main: #ffffff;              /* White */
-            --text-secondary: #d1d5db;         /* Light Grey */
-            --card-border: rgba(220, 38, 38, 0.15); /* Red Border */
+            --text-secondary: #b4bbc4;         /* Light Grey */
+            --card-border: rgba(75, 91, 99, 0.2); /* Subtle Slate Border */
             --font: 'Outfit', sans-serif;
             --glass: rgba(15, 15, 15, 0.85);   /* Black Glass */
         }
@@ -43,11 +43,11 @@
             overflow-x: hidden;
         }
 
-        /* Background orbs - Red Tinted */
+        /* Background orbs - Subtle Slate Tint */
         .background-orb {
             position: fixed;
             border-radius: 50%;
-            opacity: 0.08;
+            opacity: 0.06;
             pointer-events: none;
             z-index: 0;
         }
@@ -55,7 +55,7 @@
         .orb-1 {
             width: 400px;
             height: 400px;
-            background: radial-gradient(circle, rgba(220, 38, 38, 0.2) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(75, 91, 99, 0.15) 0%, transparent 70%);
             top: -100px;
             left: -100px;
         }
@@ -63,20 +63,20 @@
         .orb-2 {
             width: 300px;
             height: 300px;
-            background: radial-gradient(circle, rgba(220, 38, 38, 0.15) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(74, 155, 142, 0.12) 0%, transparent 70%);
             bottom: -50px;
             right: -50px;
         }
 
         /* Glass panel card */
         .glass-panel {
-            background: rgba(26, 26, 26, 0.95);
+            background: rgba(26, 26, 26, 0.98);
             border: 1px solid var(--card-border);
             border-radius: 28px;
             padding: 2.25rem;
             position: relative;
             z-index: 1;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 20px rgba(220, 38, 38, 0.1);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
         }
 
         /* Base inputs & buttons */
@@ -86,7 +86,7 @@
         input[type="tel"] {
             width: 100%;
             background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(220, 38, 38, 0.2);
+            border: 1px solid rgba(75, 91, 99, 0.2);
             border-radius: 16px;
             padding: 1rem 1.25rem;
             color: var(--text-main);
@@ -97,9 +97,9 @@
         }
 
         input:focus {
-            border-color: var(--primary-color);
+            border-color: var(--accent-teal);
             background: rgba(255, 255, 255, 0.08);
-            box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
+            box-shadow: 0 0 0 4px rgba(74, 155, 142, 0.08);
         }
 
         input::placeholder {
@@ -122,18 +122,18 @@
             justify-content: center;
             gap: 0.5rem;
             transition: all 0.3s;
-            box-shadow: 0 10px 20px rgba(220, 38, 38, 0.3);
+            box-shadow: 0 4px 12px rgba(75, 91, 99, 0.2);
         }
 
         .btn-primary:hover {
             background: var(--primary-light);
             transform: translateY(-2px);
-            box-shadow: 0 15px 30px rgba(220, 38, 38, 0.4);
+            box-shadow: 0 6px 16px rgba(75, 91, 99, 0.3);
         }
 
         .btn-icon {
-            background: rgba(220, 38, 38, 0.1);
-            border: 1px solid rgba(220, 38, 38, 0.2);
+            background: rgba(75, 91, 99, 0.08);
+            border: 1px solid rgba(75, 91, 99, 0.15);
             color: var(--text-main);
             border-radius: 12px;
             padding: 0.6rem 1rem;
@@ -143,12 +143,12 @@
         }
 
         .btn-icon:hover {
-            background: rgba(220, 38, 38, 0.15);
-            border-color: rgba(220, 38, 38, 0.4);
+            background: rgba(75, 91, 99, 0.12);
+            border-color: rgba(75, 91, 99, 0.25);
         }
 
         .gradient-text {
-            background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
+            background: linear-gradient(135deg, var(--accent-teal), var(--primary-color));
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -163,8 +163,8 @@
             position: fixed;
             bottom: 1.5rem;
             right: 1.5rem;
-            background: rgba(26, 26, 26, 0.95);
-            border: 1px solid rgba(220, 38, 38, 0.2);
+            background: rgba(26, 26, 26, 0.98);
+            border: 1px solid rgba(75, 91, 99, 0.2);
             border-radius: 12px;
             padding: 0.8rem 1.2rem;
             font-size: 0.88rem;
@@ -212,17 +212,17 @@
 
         .auth-icon {
             font-size: 3rem;
-            color: var(--primary-color);
+            color: var(--accent-teal);
             margin-bottom: 1rem;
-            text-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
+            text-shadow: 0 0 20px rgba(74, 155, 142, 0.2);
         }
 
         .bay-badge {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            background: rgba(220, 38, 38, 0.1);
-            border: 1px solid rgba(220, 38, 38, 0.3);
+            background: rgba(74, 155, 142, 0.08);
+            border: 1px solid rgba(74, 155, 142, 0.2);
             padding: 0.4rem 1rem;
             border-radius: 20px;
             font-size: 0.9rem;
@@ -241,12 +241,12 @@
         }
 
         .balance-card {
-            background: linear-gradient(135deg, rgba(220, 38, 38, 0.1), rgba(159, 18, 18, 0.05));
-            border: 2px solid rgba(220, 38, 38, 0.3);
+            background: linear-gradient(135deg, rgba(74, 155, 142, 0.08), rgba(75, 91, 99, 0.05));
+            border: 1px solid rgba(74, 155, 142, 0.15);
             padding: 2.25rem 1.5rem;
             border-radius: 24px;
             margin-bottom: 2rem;
-            box-shadow: 0 20px 40px rgba(220, 38, 38, 0.15);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
             position: relative;
             overflow: hidden;
         }
@@ -258,7 +258,7 @@
             right: -50%;
             width: 200px;
             height: 200px;
-            background: radial-gradient(circle, rgba(220, 38, 38, 0.1) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(74, 155, 142, 0.08) 0%, transparent 70%);
         }
 
         .balance-label {
@@ -278,14 +278,14 @@
 
         .balance-currency {
             font-size: 1.6rem;
-            color: var(--primary-color);
+            color: var(--accent-teal);
             font-weight: 600;
             margin-right: 0.2rem;
         }
 
         .info-card {
-            background: rgba(220, 38, 38, 0.05);
-            border: 1px solid rgba(220, 38, 38, 0.2);
+            background: rgba(74, 155, 142, 0.04);
+            border: 1px solid rgba(74, 155, 142, 0.12);
             border-radius: 18px;
             padding: 1.25rem 1.5rem;
             margin-bottom: 1rem;
@@ -294,7 +294,7 @@
 
         .info-card h3 {
             font-size: 0.8rem;
-            color: var(--primary-color);
+            color: var(--accent-teal);
             margin-bottom: 0.4rem;
             font-weight: 600;
             text-transform: uppercase;
@@ -314,7 +314,7 @@
         }
 
         .instruction-text i {
-            color: var(--primary-color);
+            color: var(--accent-teal);
             margin-right: 4px;
         }
 
@@ -329,7 +329,7 @@
         .tab-btn {
             padding: 0.45rem 1.25rem;
             border-radius: 20px;
-            border: 1px solid rgba(220, 38, 38, 0.2);
+            border: 1px solid rgba(75, 91, 99, 0.15);
             background: transparent;
             color: var(--text-secondary);
             cursor: pointer;
@@ -343,7 +343,7 @@
             border-color: transparent;
             color: #ffffff;
             font-weight: 700;
-            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+            box-shadow: 0 4px 12px rgba(75, 91, 99, 0.2);
         }
 
         /* ─── Top-up Modal ─── */
@@ -368,12 +368,12 @@
 
         .modal-content {
             background: #ffffff;
-            border: 2px solid var(--primary-color);
+            border: 1px solid rgba(75, 91, 99, 0.15);
             border-radius: 22px;
             width: 100%;
             max-width: 340px;
             overflow: hidden;
-            box-shadow: 0 20px 60px rgba(220, 38, 38, 0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
             transform: scale(0.93) translateY(8px);
             transition: transform 0.3s cubic-bezier(0.34, 1.3, 0.6, 1);
         }
@@ -385,7 +385,7 @@
         /* top accent bar */
         .modal-topbar {
             height: 4px;
-            background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+            background: linear-gradient(90deg, var(--accent-teal), var(--primary-color));
             border-radius: 20px 20px 0 0;
         }
 
@@ -411,8 +411,8 @@
             width: 32px;
             height: 32px;
             border-radius: 8px;
-            border: 1px solid rgba(220, 38, 38, 0.2);
-            background: rgba(220, 38, 38, 0.1);
+            border: 1px solid rgba(75, 91, 99, 0.15);
+            background: rgba(75, 91, 99, 0.08);
             color: var(--primary-color);
             cursor: pointer;
             font-size: 0.9rem;
@@ -423,9 +423,9 @@
         }
 
         .btn-x:hover {
-            background: rgba(220, 38, 38, 0.2);
+            background: rgba(75, 91, 99, 0.12);
             color: var(--primary-dark);
-            border-color: rgba(220, 38, 38, 0.4);
+            border-color: rgba(75, 91, 99, 0.25);
         }
 
         /* Chips */
@@ -447,9 +447,9 @@
         .chip {
             padding: 0.5rem 0;
             border-radius: 10px;
-            border: 2px solid var(--primary-color);
-            background: rgba(220, 38, 38, 0.05);
-            color: var(--primary-color);
+            border: 1px solid rgba(74, 155, 142, 0.3);
+            background: rgba(74, 155, 142, 0.05);
+            color: var(--accent-teal);
             font-family: 'Outfit', sans-serif;
             font-size: 0.88rem;
             font-weight: 600;
@@ -459,14 +459,14 @@
         }
 
         .chip:hover {
-            background: rgba(220, 38, 38, 0.15);
-            border-color: var(--primary-light);
-            color: var(--primary-dark);
+            background: rgba(74, 155, 142, 0.12);
+            border-color: var(--accent-light);
+            color: var(--accent-light);
         }
 
         .chip.active {
-            background: var(--primary-color);
-            border-color: var(--primary-color);
+            background: var(--accent-teal);
+            border-color: var(--accent-teal);
             color: #ffffff;
         }
 
@@ -483,7 +483,7 @@
             transform: translateY(-50%);
             font-size: 1.3rem;
             font-weight: 700;
-            color: var(--primary-color);
+            color: var(--accent-teal);
             pointer-events: none;
         }
 
@@ -496,14 +496,14 @@
             width: 100%;
             color: #030712 !important;
             background: #ffffff !important;
-            border: 2px solid var(--primary-color) !important;
+            border: 1px solid rgba(75, 91, 99, 0.2) !important;
         }
 
         .topup-input-row input:focus {
             color: #030712 !important;
             background: #fafafa !important;
-            border-color: var(--primary-dark) !important;
-            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important;
+            border-color: var(--accent-teal) !important;
+            box-shadow: 0 0 0 3px rgba(74, 155, 142, 0.1) !important;
         }
 
         .topup-input-row input::placeholder {
@@ -516,7 +516,7 @@
             padding: 0.82rem;
             border-radius: 13px;
             border: none;
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            background: linear-gradient(135deg, var(--accent-teal), var(--primary-color));
             color: white;
             font-family: 'Outfit', sans-serif;
             font-size: 0.92rem;
@@ -527,7 +527,7 @@
             justify-content: center;
             gap: 0.45rem;
             transition: all 0.2s;
-            box-shadow: 0 4px 16px rgba(220, 38, 38, 0.35);
+            box-shadow: 0 4px 12px rgba(74, 155, 142, 0.2);
         }
 
         .btn-gen:hover {
@@ -557,8 +557,8 @@
             flex-direction: column;
             align-items: center;
             gap: 0.75rem;
-            background: rgba(220, 38, 38, 0.05);
-            border: 1px solid rgba(220, 38, 38, 0.2);
+            background: rgba(74, 155, 142, 0.04);
+            border: 1px solid rgba(74, 155, 142, 0.12);
             border-radius: 14px;
             padding: 1rem;
             margin: 0.75rem 0;
@@ -573,9 +573,9 @@
 
         .mock-note {
             font-size: 0.72rem;
-            color: var(--primary-color);
-            background: rgba(220, 38, 38, 0.1);
-            border: 1px solid rgba(220, 38, 38, 0.25);
+            color: var(--accent-teal);
+            background: rgba(74, 155, 142, 0.08);
+            border: 1px solid rgba(74, 155, 142, 0.15);
             border-radius: 7px;
             padding: 0.3rem 0.6rem;
         }
@@ -610,8 +610,8 @@
             width: 100%;
             padding: 0.65rem;
             border-radius: 13px;
-            border: 2px solid var(--primary-color);
-            background: rgba(220, 38, 38, 0.05);
+            border: 1px solid rgba(75, 91, 99, 0.15);
+            background: rgba(75, 91, 99, 0.04);
             color: var(--primary-color);
             font-family: 'Outfit', sans-serif;
             font-size: 0.85rem;
@@ -621,20 +621,20 @@
         }
 
         .btn-dismiss:hover {
-            background: rgba(220, 38, 38, 0.15);
+            background: rgba(75, 91, 99, 0.08);
             color: var(--primary-dark);
         }
 
         .modal-handle {
             width: 40px;
             height: 4px;
-            background: rgba(220, 38, 38, 0.2);
+            background: rgba(75, 91, 99, 0.12);
             border-radius: 2px;
             margin: 0.75rem auto 0;
         }
 
         .modal-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            background: linear-gradient(135deg, var(--accent-teal) 0%, var(--primary-color) 100%);
             padding: 1.5rem 1.5rem 1.25rem;
             display: flex;
             align-items: center;
@@ -682,7 +682,7 @@
             transform: translateY(-50%);
             font-size: 1.3rem;
             font-weight: 700;
-            color: var(--primary-color);
+            color: var(--accent-teal);
             pointer-events: none;
         }
 
@@ -699,7 +699,7 @@
             flex-direction: column;
             align-items: center;
             padding: 1rem 0;
-            border-top: 1px solid rgba(220, 38, 38, 0.15);
+            border-top: 1px solid rgba(74, 155, 142, 0.1);
             margin-bottom: 1rem;
         }
 
@@ -717,7 +717,7 @@
             border-radius: 16px;
             background: white;
             padding: 8px;
-            box-shadow: 0 0 0 2px var(--primary-color), 0 12px 30px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 0 0 1px rgba(74, 155, 142, 0.2), 0 12px 30px rgba(0, 0, 0, 0.15);
             overflow: hidden;
         }
 
@@ -732,12 +732,12 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            background: rgba(220, 38, 38, 0.1);
-            border: 1px solid rgba(220, 38, 38, 0.25);
+            background: rgba(74, 155, 142, 0.08);
+            border: 1px solid rgba(74, 155, 142, 0.15);
             border-radius: 10px;
             padding: 0.6rem 0.9rem;
             font-size: 0.78rem;
-            color: var(--primary-color);
+            color: var(--accent-teal);
             margin-top: 0.75rem;
             text-align: left;
         }
@@ -776,9 +776,9 @@
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            background: rgba(220, 38, 38, 0.1);
+            background: rgba(75, 91, 99, 0.08);
             color: var(--primary-color);
-            border: 1px solid rgba(220, 38, 38, 0.2);
+            border: 1px solid rgba(75, 91, 99, 0.15);
             border-radius: 14px;
             padding: 0.75rem;
             font-family: 'Outfit', sans-serif;
@@ -790,7 +790,7 @@
         }
 
         .btn-close-modal:hover {
-            background: rgba(220, 38, 38, 0.15);
+            background: rgba(75, 91, 99, 0.12);
             color: var(--primary-dark);
         }
 
@@ -808,13 +808,13 @@
             content: '';
             flex: 1;
             height: 1px;
-            background: rgba(220, 38, 38, 0.15);
+            background: rgba(75, 91, 99, 0.15);
         }
         .btn-google {
             width: 100%;
             background: #ffffff;
             color: #3c4043;
-            border: 2px solid var(--primary-color);
+            border: 1px solid rgba(75, 91, 99, 0.15);
             border-radius: 16px;
             padding: 0.85rem 1rem;
             font-family: var(--font);
@@ -826,11 +826,11 @@
             justify-content: center;
             gap: 0.6rem;
             transition: all 0.3s;
-            box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         .btn-google:hover {
             background: #f8f9fa;
-            box-shadow: 0 4px 16px rgba(220, 38, 38, 0.25);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             transform: translateY(-1px);
         }
         .btn-google svg {
@@ -898,7 +898,7 @@
                 </div>
 
                 <button class="btn-primary"
-                    style="background:transparent; border: 2px solid var(--primary-color); color: var(--primary-color); width:100%; margin-top:0.5rem;"
+                    style="background:transparent; border: 1px solid rgba(75,91,99,0.2); color: var(--primary-color); width:100%; margin-top:0.5rem;"
                     onclick="logout()">
                     <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
                 </button>
@@ -914,7 +914,7 @@
                     <!-- Header -->
                     <div class="modal-title-row">
                         <div style="display:flex; align-items:center; gap:0.6rem;">
-                            <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,var(--primary-color),var(--primary-dark)); display:flex; align-items:center; justify-content:center; font-size:1rem;">
+                            <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,var(--accent-teal),var(--primary-color)); display:flex; align-items:center; justify-content:center; font-size:1rem;">
                                 <i class="fa-solid fa-wallet" style="color:white;"></i>
                             </div>
                             <span class="modal-title-text">เติมเงิน</span>
@@ -961,7 +961,7 @@
     </div>
 
     <div id="toast" class="toast hidden"></div>
-    <script src="app.js?v=2"></script>
+    <script src="app.js?v=3"></script>
 </body>
 
 </html>
