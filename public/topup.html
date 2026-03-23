@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Car Wash — เติมเงิน</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #030712 0%, #0f172a 100%);
+            min-height: 100vh;
+            font-family: 'Outfit', sans-serif;
+            color: #f8fafc;
+            padding: 1rem;
+        }
+
+        .header {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #3b82f6, #6d28d9);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .header-text h1 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.2rem;
+        }
+
+        .header-text p {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .balance {
+            text-align: right;
+        }
+
+        .balance-label {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        .balance-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #34d399;
+        }
+
+        .btn-back {
+            padding: 0.7rem 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .topup-card {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .amount-section {
+            margin-bottom: 2rem;
+        }
+
+        .amount-label {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .amount-input {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #f8fafc;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .amount-input::placeholder {
+            color: #64748b;
+        }
+
+        .quick-amounts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .quick-btn {
+            padding: 0.8rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .quick-btn:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+
+        .qr-section {
+            text-align: center;
+            display: none;
+        }
+
+        .qr-section.show {
+            display: block;
+        }
+
+        .qr-image {
+            max-width: 300px;
+            width: 100%;
+            border-radius: 12px;
+            margin: 1.5rem auto;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            padding: 1rem;
+            background: white;
+        }
+
+        .qr-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .qr-info-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #93c5fd;
+            margin-bottom: 0.8rem;
+        }
+
+        .qr-info-text {
+            color: #cbd5e1;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .qr-amount {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #6ee7b7;
+            margin: 1rem 0;
+        }
+
+        .btn-topup {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-topup:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-topup:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-close-qr {
+            padding: 0.8rem 1.5rem;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+
+        .btn-close-qr:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .message {
+            padding: 0.8rem 1rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            display: flex;
+        }
+
+        .message.success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #6ee7b7;
+            display: flex;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .quick-amounts {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-group">
+            <div class="logo">
+                <i class="fa-solid fa-car-side"></i>
+            </div>
+            <div class="header-text">
+                <h1 id="userName">สวัสดี</h1>
+                <p>Smart Car Wash</p>
+            </div>
+        </div>
+        <div class="user-info">
+            <div class="balance">
+                <div class="balance-label">ยอดเงิน</div>
+                <div class="balance-value" id="userBalance">฿0</div>
+            </div>
+            <button class="btn-back" onclick="window.history.back()">
+                <i class="fa-solid fa-arrow-left"></i> ย้อนกลับ
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="topup-card">
+            <div class="title">
+                <i class="fa-solid fa-wallet"></i> เติมเงิน
+            </div>
+
+            <div id="message" class="message"></div>
+
+            <!-- Amount Input -->
+            <div class="amount-section">
+                <div class="amount-label">จำนวนเงินที่ต้องการเติม (บาท)</div>
+                <input 
+                    type="number" 
+                    id="amountInput" 
+                    class="amount-input" 
+                    placeholder="เช่น 100, 500, 1000" 
+                    min="1" 
+                    max="999999"
+                >
+
+                <div class="amount-label">ปุ่มลัด</div>
+                <div class="quick-amounts">
+                    <button class="quick-btn" onclick="setAmount(20)">฿20</button>
+                    <button class="quick-btn" onclick="setAmount(50)">฿50</button>
+                    <button class="quick-btn" onclick="setAmount(100)">฿100</button>
+                    <button class="quick-btn" onclick="setAmount(200)">฿200</button>
+                    <button class="quick-btn" onclick="setAmount(500)">฿500</button>
+                    <button class="quick-btn" onclick="setAmount(1000)">฿1,000</button>
+                </div>
+
+                <button class="btn-topup" onclick="generateQR()">
+                    <i class="fa-solid fa-qrcode"></i> สร้าง QR Code
+                </button>
+            </div>
+
+            <!-- QR Code Display -->
+            <div class="qr-section" id="qrSection">
+                <h3 style="color: #cbd5e1; margin-bottom: 1rem;">
+                    <i class="fa-solid fa-check-circle" style="color: #6ee7b7; margin-right: 0.5rem;"></i>
+                    QR Code พร้อมใช้
+                </h3>
+                <img id="qrImage" class="qr-image" src="" alt="QR Code">
+                <div class="qr-info">
+                    <div class="qr-info-title">
+                        <i class="fa-solid fa-phone"></i> สแกน QR Code เพื่อชำระเงิน
+                    </div>
+                    <div class="qr-amount" id="qrAmount">฿0</div>
+                    <div class="qr-info-text">
+                        ใช้ SCB mobile app หรือ ธนาคารที่รองรับ QR Code PayloadFormat EM Standardization (QRCS) ในประเทศไทย
+                    </div>
+                </div>
+                <button class="btn-close-qr" onclick="closeQR()">
+                    <i class="fa-solid fa-times"></i> ปิด QR Code
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let user = null;
+        let token = null;
+
+        window.addEventListener('load', () => {
+            token = localStorage.getItem('token');
+            const userStr = localStorage.getItem('user');
+
+            if (!token || !userStr) {
+                window.location.href = '/customer-login.html';
+                return;
+            }
+
+            user = JSON.parse(userStr);
+            document.getElementById('userName').textContent = `สวัสดี, ${user.name || user.email}`;
+            document.getElementById('userBalance').textContent = `฿${user.balance || 0}`;
+        });
+
+        function setAmount(amount) {
+            document.getElementById('amountInput').value = amount;
+        }
+
+        function showMessage(type, message) {
+            const el = document.getElementById('message');
+            el.className = 'message ' + type;
+            el.innerHTML = (type === 'error' ? '<i class="fa-solid fa-circle-exclamation"></i>' : '<i class="fa-solid fa-check-circle"></i>') + ' <span>' + message + '</span>';
+            if (type === 'error') {
+                setTimeout(() => el.style.display = 'none', 5000);
+            }
+        }
+
+        async function generateQR() {
+            const amount = document.getElementById('amountInput').value;
+
+            if (!amount || amount < 1 || amount > 999999) {
+                showMessage('error', 'กรุณาใส่จำนวนเงินที่ถูกต้อง (1-999999)');
+                return;
+            }
+
+            const btn = event.target;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังสร้าง...';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/qr/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ amount: parseInt(amount) })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.qrImage) {
+                    document.getElementById('qrImage').src = 'data:image/png;base64,' + data.qrImage;
+                    document.getElementById('qrAmount').textContent = `฿${amount}`;
+                    document.getElementById('qrSection').classList.add('show');
+                    showMessage('success', 'QR Code สร้างสำเร็จ สแกนเพื่อชำระเงิน');
+                } else {
+                    showMessage('error', data.message || 'สร้าง QR Code ไม่สำเร็จ');
+                }
+            } catch (err) {
+                showMessage('error', 'เกิดข้อผิดพลาด: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-qrcode"></i> สร้าง QR Code';
+            }
+        }
+
+        function closeQR() {
+            document.getElementById('qrSection').classList.remove('show');
+            document.getElementById('amountInput').value = '';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+================================================================================
+🔌 ESP8266 API FOR CAR WASH SYSTEM
+================================================================================
+
+Base URL: https://carwash-api-aygz.onrender.com
+
+================================================================================
+API #1: ดึงคำสั่ง (GET Request)
+================================================================================
+
+Endpoint: GET /api/bay/{machine_id}/command
+
+Example:
+  GET https://carwash-api-aygz.onrender.com/api/bay/1/command
+
+Response when has command:
+  {
+    "command": "WATER_ON"
+  }
+
+Response when no command:
+  {
+    "command": null
+  }
+
+Commands you will receive:
+  - WATER_ON  → Open water valve
+  - FOAM_ON   → Open foam valve
+  - AIR_ON    → Open air blower
+  - WAX_ON    → Open wax/coating dispenser
+  - TYRE_ON   → Open tire cleaner
+  - STOP      → Stop all (close all valves)
+  - null      → No new command, stay idle
+
+How to use:
+  1. Poll this endpoint every 2-3 seconds
+  2. When you get a command, trigger the corresponding GPIO pin
+  3. When done, send status update (see API #2)
+
+================================================================================
+API #2: Report Status (POST Request)
+================================================================================
+
+Endpoint: POST /api/bay/{machine_id}/status
+
+URL: https://carwash-api-aygz.onrender.com/api/bay/1/status
+
+Headers:
+  Content-Type: application/json
+
+Body (when machine is BUSY):
+  {
+    "status": "BUSY"
+  }
+
+Body (when machine is IDLE/STOPPED):
+  {
+    "status": "IDLE"
+  }
+
+Response:
+  {
+    "message": "✅ อัปเดตสถานะ Bay 1 → BUSY"
+  }
+
+When to send:
+  - Immediately after executing a command (BUSY)
+  - When machine finishes/stops (IDLE)
+  - Or every 5-10 seconds as heartbeat
+
+================================================================================
+IMPLEMENTATION FLOW
+================================================================================
+
+1. Initialize WiFi connection
+2. Set GPIO pins as OUTPUT
+3. Loop forever:
+   a. GET /api/bay/{id}/command (every 2-3 seconds)
+   b. If command received:
+      - WATER_ON  → digitalWrite(PIN_WATER, HIGH)
+      - FOAM_ON   → digitalWrite(PIN_FOAM, HIGH)
+      - AIR_ON    → digitalWrite(PIN_AIR, HIGH)
+      - WAX_ON    → digitalWrite(PIN_WAX, HIGH)
+      - TYRE_ON   → digitalWrite(PIN_TYRE, HIGH)
+      - STOP      → digitalWrite(ALL_PINS, LOW)
+   c. POST /api/bay/{id}/status with {"status":"BUSY"} or {"status":"IDLE"}
+   d. Wait, then repeat
+
+================================================================================
+QUICK TEST (Using curl or Postman)
+================================================================================
+
+Test getting command:
+  curl "https://carwash-api-aygz.onrender.com/api/bay/1/command"
+
+Test sending status:
+  curl -X POST "https://carwash-api-aygz.onrender.com/api/bay/1/status" \
+    -H "Content-Type: application/json" \
+    -d '{"status":"BUSY"}'
+
+================================================================================
+GPIO PIN MAPPING (Configure according to your hardware)
+================================================================================
+
+Example pins (adjust to match your wiring):
+  GPIO 13 → WATER  (ฉีดน้ำ)
+  GPIO 12 → FOAM   (โฟม)
+  GPIO 14 → AIR    (ลม)
+  GPIO 27 → WAX    (เคลือบ)
+  GPIO 26 → TYRE   (ยางดำ)
+  GPIO 25 → STOP   (Optional manual stop button)
+
+================================================================================
+MINIMAL ARDUINO CODE EXAMPLE
+================================================================================
+
+#include <WiFi.h>
+#include <HTTPClient.h>
+
+// === CONFIG ===
+const char* WIFI_SSID = "YOUR_WIFI_NAME";
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+const char* API_URL = "https://carwash-api-aygz.onrender.com";
+const int BAY_ID = 1;  // Change to 2, 3, 4, 5, or 6
+
+// === PINS ===
+#define PIN_WATER 13
+#define PIN_FOAM 12
+#define PIN_AIR 14
+#define PIN_WAX 27
+#define PIN_TYRE 26
+
+// === STATE ===
+unsigned long lastCheck = 0;
+const unsigned long CHECK_INTERVAL = 3000; // 3 seconds
+
+void setup() {
+  Serial.begin(115200);
+  
+  // Setup pins
+  pinMode(PIN_WATER, OUTPUT);
+  pinMode(PIN_FOAM, OUTPUT);
+  pinMode(PIN_AIR, OUTPUT);
+  pinMode(PIN_WAX, OUTPUT);
+  pinMode(PIN_TYRE, OUTPUT);
+  
+  // Stop all
+  digitalWrite(PIN_WATER, LOW);
+  digitalWrite(PIN_FOAM, LOW);
+  digitalWrite(PIN_AIR, LOW);
+  digitalWrite(PIN_WAX, LOW);
+  digitalWrite(PIN_TYRE, LOW);
+  
+  // Connect WiFi
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\n✅ WiFi connected!");
+}
+
+void loop() {
+  if (millis() - lastCheck >= CHECK_INTERVAL) {
+    lastCheck = millis();
+    checkCommand();
+  }
+  delay(100);
+}
+
+void checkCommand() {
+  if (WiFi.status() != WL_CONNECTED) return;
+  
+  HTTPClient http;
+  String url = String(API_URL) + "/api/bay/" + BAY_ID + "/command";
+  
+  http.begin(url);
+  int httpCode = http.GET();
+  
+  if (httpCode == 200) {
+    String response = http.getString();
+    Serial.println("[API] " + response);
+    
+    // Parse and execute command
+    if (response.indexOf("WATER_ON") != -1) {
+      executeCommand("WATER_ON");
+    } else if (response.indexOf("FOAM_ON") != -1) {
+      executeCommand("FOAM_ON");
+    } else if (response.indexOf("AIR_ON") != -1) {
+      executeCommand("AIR_ON");
+    } else if (response.indexOf("WAX_ON") != -1) {
+      executeCommand("WAX_ON");
+    } else if (response.indexOf("TYRE_ON") != -1) {
+      executeCommand("TYRE_ON");
+    } else if (response.indexOf("STOP") != -1) {
+      executeCommand("STOP");
+    }
+  }
+  
+  http.end();
+}
+
+void executeCommand(String cmd) {
+  Serial.println(">>> " + cmd);
+  
+  // Stop all first
+  digitalWrite(PIN_WATER, LOW);
+  digitalWrite(PIN_FOAM, LOW);
+  digitalWrite(PIN_AIR, LOW);
+  digitalWrite(PIN_WAX, LOW);
+  digitalWrite(PIN_TYRE, LOW);
+  
+  // Execute command
+  if (cmd == "WATER_ON") {
+    digitalWrite(PIN_WATER, HIGH);
+  } else if (cmd == "FOAM_ON") {
+    digitalWrite(PIN_FOAM, HIGH);
+  } else if (cmd == "AIR_ON") {
+    digitalWrite(PIN_AIR, HIGH);
+  } else if (cmd == "WAX_ON") {
+    digitalWrite(PIN_WAX, HIGH);
+  } else if (cmd == "TYRE_ON") {
+    digitalWrite(PIN_TYRE, HIGH);
+  }
+  
+  // Report status
+  reportStatus(cmd == "STOP" ? "IDLE" : "BUSY");
+}
+
+void reportStatus(String status) {
+  if (WiFi.status() != WL_CONNECTED) return;
+  
+  HTTPClient http;
+  String url = String(API_URL) + "/api/bay/" + BAY_ID + "/status";
+  
+  http.begin(url);
+  http.addHeader("Content-Type", "application/json");
+  
+  String payload = "{\"status\":\"" + status + "\"}";
+  int httpCode = http.POST(payload);
+  
+  if (httpCode == 200) {
+    Serial.println("✅ Status " + status + " sent");
+  }
+  
+  http.end();
+}
+
+================================================================================
+SUPPORT & TROUBLESHOOTING
+================================================================================
+
+If you have issues:
+1. Check WiFi connection (Serial monitor)
+2. Test APIs manually with curl/Postman first
+3. Verify GPIO pins match your hardware
+4. Check API URL is correct
+5. Ensure bay ID (1-6) is correct
+
+Base URL: https://carwash-api-aygz.onrender.com
+API Documentation: See ESP8266_API.md file
+
+================================================================================

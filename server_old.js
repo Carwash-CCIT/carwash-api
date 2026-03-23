@@ -62,7 +62,7 @@ function pushCommandToFirebase(machineId, command) {
 }
 
 const app = express();
-app.set('trust proxy', 1);
+app.set('trust proxy', 1); // เปลี่ยนเป็น 1 แทน true เพื่อให้ Express Rate Limit แจ้ง Error ผ่าน
 const port = process.env.PORT || 3000;
 
 // ─── MIDDLEWARE ─────────────────────────────────────────────
@@ -85,8 +85,8 @@ app.use((req, res, next) => {
 
 // ─── RATE LIMITING ──────────────────────────────────────────
 const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 999, // Rate limit ??????????????
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 requests per windowMs
     message: { message: '❌ ลองเข้าสู่ระบบเกินครั้ง กรุณารอ 15 นาที' },
     validate: { trustProxy: false },
     standardHeaders: true,
@@ -94,11 +94,11 @@ const authLimiter = rateLimit({
 });
 
 const apiLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000,
-    max: 30,
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 30, // 30 requests per minute
     message: { message: '❌ เกินขีดจำกัดการใช้งาน' },
     validate: { trustProxy: false },
-    skip: (req) => req.user?.role === 'admin'
+    skip: (req) => req.user?.role === 'admin' // admins bypass
 });
 
 app.use('/auth/', authLimiter);
@@ -116,11 +116,13 @@ const db = new sqlite3.Database(dbPath, (err) => {
         db.run('PRAGMA foreign_keys = ON');
         db.run('PRAGMA synchronous = NORMAL');
 
+        // 🛡️ Auto-Migrate: Ensure tables exist even if init_db.js failed
         db.run(`CREATE TABLE IF NOT EXISTS machines (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
             status TEXT DEFAULT 'ready'
         )`, () => {
+            // Check if machines exist, if not, insert defaults
             db.get("SELECT COUNT(*) as count FROM machines", (err, row) => {
                 if (!err && row.count === 0) {
                     db.run(`INSERT INTO machines (name, status) VALUES 
@@ -173,15 +175,17 @@ const db = new sqlite3.Database(dbPath, (err) => {
             FOREIGN KEY(machine_id) REFERENCES machines(id)
         )`);
 
-        db.run("ALTER TABLE machines ADD COLUMN pending_command TEXT DEFAULT NULL", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
-        db.run("ALTER TABLE users ADD COLUMN pending_qr_ref TEXT DEFAULT NULL", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
-        db.run("ALTER TABLE users ADD COLUMN pending_qr_amount REAL DEFAULT NULL", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
-        db.run("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
-        db.run("ALTER TABLE users ADD COLUMN token_expires DATETIME", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
-        db.run("ALTER TABLE users ADD COLUMN refresh_token TEXT", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
-        db.run("ALTER TABLE users ADD COLUMN google_id TEXT", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
-        db.run("ALTER TABLE users ADD COLUMN google_picture TEXT", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
-        db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id)", (err) => { if (err) console.log('ℹ️ Migration:', err.message); });
+        // Migration for existing tables
+        db.run("ALTER TABLE machines ADD COLUMN pending_command TEXT DEFAULT NULL", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration (machines.pending_command):', err.message); });
+        db.run("ALTER TABLE users ADD COLUMN pending_qr_ref TEXT DEFAULT NULL", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration (users.pending_qr_ref):', err.message); });
+        db.run("ALTER TABLE users ADD COLUMN pending_qr_amount REAL DEFAULT NULL", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration (users.pending_qr_amount):', err.message); });
+        db.run("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration (users.role):', err.message); });
+        db.run("ALTER TABLE users ADD COLUMN token_expires DATETIME", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration (users.token_expires):', err.message); });
+        db.run("ALTER TABLE users ADD COLUMN refresh_token TEXT", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration (users.refresh_token):', err.message); });
+        db.run("ALTER TABLE users ADD COLUMN google_id TEXT", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration (users.google_id):', err.message); });
+        db.run("ALTER TABLE users ADD COLUMN google_picture TEXT", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration (users.google_picture):', err.message); });
+        // Create unique index for google_id
+        db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id)", (err) => { if (err) console.log('ℹ️ Migration (index google_id):', err.message); });
     });
 });
 
@@ -194,6 +198,17 @@ function generateToken() {
     return crypto.randomBytes(32).toString('hex');
 }
 
+function generateAccessToken(userId, expiresIn = '1h') {
+    // Simple JWT-like format (ในกรณีจริง ควรใช้ jsonwebtoken library)
+    const payload = {
+        userId,
+        iat: Date.now(),
+        exp: Date.now() + (expiresIn === '1h' ? 3600000 : 86400000)
+    };
+    return Buffer.from(JSON.stringify(payload)).toString('base64');
+}
+
+// Nodemailer Config
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -229,6 +244,7 @@ function validateEmail(email) {
 }
 
 function validatePassword(password) {
+    // อย่างน้อย 6 ตัว มี พิมพ์เล็ก พิมพ์ใหญ่ ตัวเลข
     return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{6,}$/.test(password);
 }
 
@@ -247,6 +263,7 @@ function authMiddleware(req, res, next) {
             if (err || !user) return res.status(401).json({ message: '❌ Token ไม่ถูกต้อง' });
             if (user.status !== 'active') return res.status(403).json({ message: '❌ บัญชีนี้ถูกระงับ' });
             
+            // Check token expiration
             if (user.token_expires && new Date(user.token_expires) < new Date()) {
                 return res.status(401).json({ message: '❌ Token หมดอายุแล้ว กรุณา login ใหม่' });
             }
@@ -259,6 +276,7 @@ function authMiddleware(req, res, next) {
     }
 }
 
+// ─── MIDDLEWARE: ADMIN CHECK ────────────────────────────────
 function adminMiddleware(req, res, next) {
     if (req.user?.role !== 'admin') {
         return res.status(403).json({ message: '❌ ไม่มีสิทธิเข้าถึง (ต้องเป็น admin)' });
@@ -266,6 +284,7 @@ function adminMiddleware(req, res, next) {
     next();
 }
 
+// ─── GLOBAL ERROR HANDLER ───────────────────────────────────
 app.use((err, req, res, next) => {
     console.error('❌ Global Error:', err.message);
     res.status(err.status || 500).json({
@@ -275,8 +294,11 @@ app.use((err, req, res, next) => {
     });
 });
 
-// ─── AUTH APIs ────────────────────────────────────────────────
+// ─── AUTH APIs ─────────────────────────────────────────────────
 
+// ─── GOOGLE OAUTH ──────────────────────────────────────────────
+
+// Google OAuth Callback endpoint - called by Google after user authorizes
 app.get('/auth/google/callback', async (req, res) => {
     const { code, state } = req.query;
     
@@ -289,8 +311,10 @@ app.get('/auth/google/callback', async (req, res) => {
     }
 
     try {
+        // Exchange authorization code for tokens using OAuth2 flow
         const { tokens } = await googleClient.getToken(code);
         
+        // Verify the ID token
         const ticket = await googleClient.verifyIdToken({
             idToken: tokens.id_token,
             audience: process.env.GOOGLE_CLIENT_ID
@@ -303,6 +327,7 @@ app.get('/auth/google/callback', async (req, res) => {
         const picture = payload.picture;
         const machineId = state ? decodeURIComponent(state) : null;
 
+        // Check if user exists
         db.get("SELECT * FROM users WHERE google_id = ?", [googleId], (err, user) => {
             if (err) {
                 console.error('❌ [Google Callback] Database error:', err.message);
@@ -314,6 +339,7 @@ app.get('/auth/google/callback', async (req, res) => {
             const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
             if (user) {
+                // User exists - login
                 db.run(
                     "UPDATE users SET token = ?, refresh_token = ?, token_expires = ? WHERE id = ?",
                     [token, refreshToken, tokenExpires.toISOString(), user.id],
@@ -325,6 +351,7 @@ app.get('/auth/google/callback', async (req, res) => {
 
                         createSessionForBay(user.id, machineId);
                         
+                        // Redirect to frontend with tokens
                         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
                         const redirectUrl = `${frontendUrl}/auth-success?token=${encodeURIComponent(token)}&refreshToken=${encodeURIComponent(refreshToken)}&name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`;
                         console.log(`✅ [Google OAuth] User ${user.id} logged in via callback`);
@@ -332,6 +359,7 @@ app.get('/auth/google/callback', async (req, res) => {
                     }
                 );
             } else {
+                // New user - auto register
                 db.run(
                     `INSERT INTO users (google_id, email, name, google_picture, balance, status, token, refresh_token, token_expires) 
                      VALUES (?, ?, ?, ?, 0, 'active', ?, ?, ?)`,
@@ -360,15 +388,17 @@ app.get('/auth/google/callback', async (req, res) => {
     }
 });
 
+// POST endpoint for direct ID Token verification (for spa/mobile apps)
 app.post('/auth/google', async (req, res) => {
     if (!googleClient) {
-        return res.status(500).json({ message: '❌ Google OAuth not configured' });
+        return res.status(500).json({ message: '❌ Google OAuth not configured (GOOGLE_CLIENT_ID missing)' });
     }
     
     const { idToken, machine_id } = req.body;
     if (!idToken) return res.status(400).json({ message: '❌ ระบุ idToken' });
 
     try {
+        // Verify Google ID Token
         const ticket = await googleClient.verifyIdToken({
             idToken: idToken,
             audience: process.env.GOOGLE_CLIENT_ID
@@ -380,6 +410,7 @@ app.post('/auth/google', async (req, res) => {
         const name = payload.name;
         const picture = payload.picture;
 
+        // Check if user exists
         db.get("SELECT * FROM users WHERE google_id = ?", [googleId], (err, user) => {
             if (err) {
                 console.error('❌ [Google Auth] Database error:', err.message);
@@ -387,6 +418,7 @@ app.post('/auth/google', async (req, res) => {
             }
 
             if (user) {
+                // User exists - login
                 const token = generateToken();
                 const refreshToken = generateToken();
                 const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -413,6 +445,7 @@ app.post('/auth/google', async (req, res) => {
                     }
                 );
             } else {
+                // New user - auto register
                 const token = generateToken();
                 const refreshToken = generateToken();
                 const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -451,6 +484,8 @@ app.post('/auth/google', async (req, res) => {
         res.status(401).json({ message: '❌ Invalid Google token' });
     }
 });
+
+// ─── AUTH APIs ─────────────────────────────────────────────────
 
 async function handleOTPRequest(identifier, isRegister, res) {
     if (!identifier) return res.status(400).json({ message: '❌ กรุณาระบุเบอร์โทรหรืออีเมล' });
@@ -494,7 +529,8 @@ async function handleOTPRequest(identifier, isRegister, res) {
             } catch (error) {
                 console.error('❌ [OTP API Error]:', error);
                 
-                console.warn('⚠️ [Mock OTP] เปิดใช้งาน OTP จำลองเนื่องจากโควต้า SMS หมด');
+                // Fallback for testing when SMS credit is zero
+                console.warn('⚠️ [Mock OTP] เปิดใช้งาน OTP จำลองเนื่องจากโควต้า SMS หมด (เพื่อการทดสอบ)');
                 saveCode = generateOTP();
                 console.log(`🔑 [Mock] OTP สำหรับ ${identifier} คือ: ${saveCode}`);
                 
@@ -544,12 +580,13 @@ async function verifyOTP(identifier, otp, isPhone, user) {
         const token = user.otp_code;
         if (!token) throw new Error('ไม่พบข้อมูลการขอ OTP');
 
+        // ถ้า token เป็นตัวเลข 6 หลัก แสดงว่าเป็น Mock OTP
         if (token.length === 6 && /^\d+$/.test(token)) {
             if (token !== otp) throw new Error('รหัส OTP จำลองไม่ถูกต้อง');
             const now = new Date();
             const expires = new Date(user.otp_expires);
             if (now > expires) throw new Error('รหัส OTP จำลองหมดอายุแล้ว');
-            return;
+            return; // ผ่าน
         }
 
         const otpApi = thaibulksmsApi.otp({
@@ -622,7 +659,7 @@ app.post('/auth/register/verify-otp', async (req, res) => {
 
         const token = generateToken();
         const refreshToken = generateToken();
-        const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
         const { machine_id } = req.body;
 
         let hashedPassword = null;
@@ -717,6 +754,7 @@ app.post('/auth/login/verify-otp', async (req, res) => {
     });
 });
 
+// Refresh Token Endpoint
 app.post('/auth/refresh', (req, res) => {
     const { refreshToken } = req.body;
     if (!refreshToken) return res.status(400).json({ message: '❌ ระบุ refreshToken' });
@@ -786,6 +824,8 @@ app.post('/topup', authMiddleware, (req, res) => {
             "INSERT INTO transactions (user_id, action_type, amount) VALUES (?, 'topup', ?)",
             [req.user.id, amount]
         );
+        
+        // Note: Google Sheets sync disabled - using local database only
 
         res.json({ message: `✅ เติมเงิน ฿${amount} สำเร็จ!`, balance: newBalance });
     });
@@ -803,6 +843,7 @@ app.get('/wallet/history', authMiddleware, (req, res) => {
 });
 
 // ─── MACHINE APIs ─────────────────────────────────────────────
+// Note: /machines is PUBLIC (no auth required) for dashboard display
 app.get('/machines', (req, res) => {
     const sql = `
         SELECT 
@@ -919,6 +960,7 @@ app.post('/service/stop', authMiddleware, (req, res) => {
 
 // ─── ADMIN APIs ───────────────────────────────────────────────
 
+// PUBLIC endpoint for reset (no auth required)
 app.post('/admin/reset-bay', (req, res) => {
     const { machine_id } = req.body;
     if (!machine_id) return res.status(400).json({ message: '❌ ระบุ machine_id' });
@@ -932,6 +974,7 @@ app.post('/admin/reset-bay', (req, res) => {
     });
 });
 
+// PUBLIC: User management (no auth required for now)
 app.get('/admin/users', (req, res) => {
     db.all("SELECT id, name, phone, email, balance, status, role, created_at FROM users WHERE status != 'pending' ORDER BY id DESC", [], (err, rows) => {
         if (err) return res.status(500).json({ message: '❌ เกิดข้อผิดพลาด' });
@@ -939,6 +982,7 @@ app.get('/admin/users', (req, res) => {
     });
 });
 
+// PUBLIC: Financial operations (no auth required for now)
 app.post('/admin/topup', (req, res) => {
     const { user_id, amount } = req.body;
     if (!user_id || !validateAmount(amount)) {
@@ -950,12 +994,15 @@ app.post('/admin/topup', (req, res) => {
         db.run("UPDATE users SET balance = ? WHERE id = ?", [newBalance, user_id], (err2) => {
             if (err2) return res.status(500).json({ message: '❌ เติมเงินไม่สำเร็จ' });
             db.run("INSERT INTO transactions (user_id, action_type, amount) VALUES (?, 'topup', ?)", [user_id, amount]);
+            
+            // Note: Google Sheets sync disabled - using local database only
 
             res.json({ message: `✅ เติมเงิน ฿${amount} ให้ ${user.name || user.phone || user.email} สำเร็จ!`, balance: newBalance });
         });
     });
 });
 
+// PUBLIC: Deduct (no auth required for now)
 app.post('/admin/deduct', (req, res) => {
     const { user_id, amount } = req.body;
     if (!user_id || !validateAmount(amount)) {
@@ -975,6 +1022,7 @@ app.post('/admin/deduct', (req, res) => {
     });
 });
 
+// PUBLIC endpoint for Dashboard control (no auth required)
 app.post('/admin/command', (req, res) => {
     const { machine_id, command } = req.body;
     const validCmds = ['WATER_ON', 'FOAM_ON', 'AIR_ON', 'WAX_ON', 'TYRE_ON', 'STOP'];
@@ -994,6 +1042,7 @@ app.post('/admin/command', (req, res) => {
     res.json({ message: `✅ ส่งคำสั่ง ${command} ไปที่ Bay ${machine_id} เรียบร้อย!` });
 });
 
+// PUBLIC: Finance reports (no auth required for now)
 app.get('/admin/finance', (req, res) => {
     const queries = {
         daily: `
@@ -1041,6 +1090,7 @@ app.get('/admin/finance', (req, res) => {
     });
 });
 
+// PUBLIC: User deletion (no auth required for now)
 app.delete('/admin/users/:id', (req, res) => {
     const { id } = req.params;
     
@@ -1058,6 +1108,7 @@ app.delete('/admin/users/:id', (req, res) => {
     });
 });
 
+// PUBLIC: Password change (no auth required for now)
 app.put('/admin/users/:id/password', async (req, res) => {
     const { id } = req.params;
     const { password } = req.body;
@@ -1076,6 +1127,7 @@ app.put('/admin/users/:id/password', async (req, res) => {
     }
 });
 
+// PUBLIC: User creation (no auth required for now)
 app.post('/admin/users', async (req, res) => {
     const { name, phone, email, password, role } = req.body;
     if (!name) return res.status(400).json({ message: '❌ กรุณาระบุชื่อ' });
@@ -1103,6 +1155,8 @@ app.post('/admin/users', async (req, res) => {
     }
 });
 
+// ─── Legacy API ────────────────────────────────────────────────
+
 app.get('/user/:identifier', (req, res) => {
     const identifier = req.params.identifier;
     const isPhone = validatePhone(identifier);
@@ -1115,6 +1169,7 @@ app.get('/user/:identifier', (req, res) => {
 
 // ─── ESP8266 Additional APIs ──────────────────────────────────
 
+// Get session info for current bay
 app.get('/api/bay/:id/session', (req, res) => {
     const machine_id = parseInt(req.params.id);
     db.get(`
@@ -1155,16 +1210,17 @@ app.get('/api/bay/:id/session', (req, res) => {
     });
 });
 
+// Get pricing info
 app.get('/api/pricing', (req, res) => {
     res.json({
         pricing: {
-            WATER_ON: 5,
-            FOAM_ON: 8,
-            AIR_ON: 3,
-            WAX_ON: 15,
-            TYRE_ON: 10
+            WATER_ON: 5,      // บาท/นาที
+            FOAM_ON: 8,       // บาท/นาที
+            AIR_ON: 3,        // บาท/นาที
+            WAX_ON: 15,       // บาท/นาที
+            TYRE_ON: 10       // บาท/นาที
         },
-        minimum_balance: 10,
+        minimum_balance: 10,  // ยอดขั้นต่ำสำหรับใช้บริการ
         currency: 'THB',
         message: '✅ Pricing information'
     });
@@ -1275,48 +1331,116 @@ app.post('/api/qr/create', authMiddleware, async (req, res) => {
     }
 });
 
-// ─── SCB Webhook ────────────────────────────────────────────────
+// ─── SCB Webhook (รับแจ้งเตือนเมื่อเงินเข้า) ────────────────────────
+// SCB จะส่ง POST Request มาที่นี่เมื่อมีการชำระเงินสำเร็จ
 app.post('/webhook/scb', async (req, res) => {
     console.log('🔔 [SCB Webhook] ได้รับข้อมูล:', JSON.stringify(req.body));
     
+    // โครงสร้าง Payload ของ SCB Webhook (อ้างอิงจาก SCB Developer Portal)
     const data = req.body;
-    const qrRef = data.reference3 || data.ref3;
+    const qrRef = data.reference3; // เราแนบ qrRef ไปใน ref3 ตอนสร้าง QR
     const topupAmount = parseFloat(data.amount);
 
     if (!qrRef || !topupAmount) {
-        console.warn('⚠️ [SCB Webhook] ข้อมูลมาไม่ครบ');
-        return res.status(200).json({ resCode: '00', resDesc: 'Invalid Format (Ignored)' });
+        console.warn('⚠️ [SCB Webhook] ข้อมูลมาไม่ครบ หรือไม่ใช่รายการจ่ายเงินที่ถูกต้อง');
+        return res.status(400).json({ resCode: '99', resDesc: 'Invalid Format' });
     }
 
+    // ไปหาว่ามี pending qr รหัสนี้อยู่กับใคร
     db.get(
         `SELECT * FROM users WHERE pending_qr_ref = ?`,
         [qrRef],
         (err, user) => {
             if (err || !user) {
-                console.warn(`⚠️ [SCB Webhook] ไม่พบรายการสร้าง QR (Ref: ${qrRef}) ยอด ฿${topupAmount}`);
-                return res.status(200).json({ resCode: '00', resDesc: 'Success (Ignored)' }); 
+                console.warn(`⚠️ [SCB Webhook] ไม่พบรายการสร้าง QR (Ref: ${qrRef}) หรือเติมเงินไปแล้ว ยอด ฿${topupAmount}`);
+                // รีเทิร์น 00 (Success) เพื่อให้ SCB เลิกพยายามส่งซ้ำ
+                return res.status(200).json({ resCode: '00', resDesc: 'Success (But ignored locally)' }); 
             }
 
             const newBalance = user.balance + topupAmount;
 
+            // อัปเดตเงิน และล้างรหัส qrRef เพื่อป้องกันเงินเข้าซ้ำสองครั้ง
             db.run("UPDATE users SET balance = ?, pending_qr_ref = NULL, pending_qr_amount = NULL WHERE id = ?",
                 [newBalance, user.id], (err2) => {
                     if (err2) {
-                        console.error('❌ [SCB Webhook] อัปเดตเงินล้มเหลว', err2);
-                        return res.status(200).json({ resCode: '00', resDesc: 'Processed' });
+                        console.error('❌ [SCB Webhook] อัปเดตเงินในฐานข้อมูลล้มเหลว', err2);
+                        return res.status(500).json({ resCode: '99', resDesc: 'Internal Server Error' });
                     }
 
+                    // บันทึก Log Transaction
                     db.run(
                         "INSERT INTO transactions (user_id, action_type, amount) VALUES (?, 'topup_scb', ?)",
                         [user.id, topupAmount]
                     );
 
-                    console.log(`💸 [TopUp] User ${user.id} เติมเงิน ฿${topupAmount} (Ref: ${qrRef}) ยอดใหม่: ฿${newBalance}`);
+                    // Note: Google Sheets sync disabled - using local database only
+
+                    console.log(`💸 [TopUp] User ${user.id} เติมเงินผ่าน SCB Webhook ฿${topupAmount} (Ref: ${qrRef}) ยอดใหม่: ฿${newBalance}`);
                     res.status(200).json({ resCode: '00', resDesc: 'Success', transactionId: data.transactionId });
                 }
             );
         }
     );
+});
+// ─── Google Sheets Sync ─────────────────────────────────────────
+async function syncToGoogleSheets(data) {
+    const apiLink = "https://script.google.com/macros/s/AKfycbwCSDt4aoxyrnU9TIrEiFZtDbGcoah_VN0mw38fzYc9KNUG6XQDTGZ6bqZ7YxpIBDUr/exec";
+    try {
+        // Construct the URL parameters as expected by the Google Apps Script
+        const params = new URLSearchParams({
+            memberId: data.userName || `ID:${data.userId}`,
+            amount: data.amount,
+            status: data.action === 'topup_qr' ? 'Topup (SCB QR)' : data.action
+        });
+        
+        // The script expects a GET request, but POST with body might not be parsed correctly based on the provided script.
+        // We'll use GET with query parameters as the simplest way to hit the Apps Script doGet.
+        const urlWithParams = `${apiLink}?${params.toString()}`;
+        
+        await axios.get(urlWithParams);
+        console.log(`📊 [G-Sheets] บันทึกยอด ฿${data.amount} ของ ${data.userName || data.userId} สำเร็จ`);
+    } catch (e) {
+        console.error('❌ [G-Sheets Error]:', e.message);
+    }
+}
+
+// Webhook — SCB แจ้งกลับเมื่อมีการโอนเงินสำเร็จ
+app.post('/webhook/scb', async (req, res) => {
+    console.log('📩 [SCB Webhook]', JSON.stringify(req.body));
+    res.status(200).json({ status: 'ok' });
+
+    try {
+        const { ref3, amount, transactionId } = req.body.data || req.body;
+        if (!ref3 || !amount) return;
+
+        db.get(
+            `SELECT * FROM users WHERE pending_qr_ref = ?`, [ref3],
+            (err, user) => {
+                if (err || !user) {
+                    console.warn(`⚠️ [SCB Webhook] ไม่พบ user สำหรับ ref3: ${ref3}`);
+                    return;
+                }
+                const topupAmount = parseFloat(amount);
+                db.run(
+                    `UPDATE users SET balance = balance + ?, pending_qr_ref = NULL, pending_qr_amount = NULL WHERE id = ?`,
+                    [topupAmount, user.id],
+                    (err2) => {
+                        if (!err2) {
+                            db.run(
+                                `INSERT INTO transactions (user_id, action_type, amount) VALUES (?, 'topup', ?)`,
+                                [user.id, topupAmount]
+                            );
+                            console.log(`✅ [SCB Webhook] เติมเงิน ฿${topupAmount} ให้ user ${user.id} สำเร็จ`);
+
+                            // Note: Google Sheets sync disabled - using local database only
+                        }
+                    }
+                );
+            }
+        );
+    } catch (e) {
+        console.error('❌ [SCB Webhook] exception:', e.message);
+    }
 });
 
 // ─── Health Check ──────────────────────────────────────────────
@@ -1338,3 +1462,4 @@ app.listen(port, () => {
 });
 
 module.exports = app;
+

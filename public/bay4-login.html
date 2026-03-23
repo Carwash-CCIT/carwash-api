@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Car Wash — ล้างรถ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <meta name="google-client-id" content="1015275273603-ch7v0cops75lc14gib41q0cfv66ntb5v.apps.googleusercontent.com">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #030712 0%, #0f172a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Outfit', sans-serif;
+            color: #f8fafc;
+            padding: 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .card {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 3rem 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1rem;
+            background: linear-gradient(135deg, #f8fafc, #94a3b8);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: #030712;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 0.95rem;
+            color: #64748b;
+        }
+
+        .message {
+            padding: 0.8rem 1rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            display: flex;
+        }
+
+        .message.success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #6ee7b7;
+            display: flex;
+        }
+
+        .google-login-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        #googleSignInButton {
+            display: flex !important;
+            justify-content: center;
+            width: 100%;
+        }
+
+        #googleSignInButton > div {
+            width: 100% !important;
+        }
+
+        .info-box {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            padding: 1rem;
+            font-size: 0.85rem;
+            color: #93c5fd;
+            margin-top: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .info-box strong {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #bfdbfe;
+        }
+
+        @media (max-width: 600px) {
+            .card {
+                padding: 2rem 1.5rem;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .logo {
+                width: 60px;
+                height: 60px;
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <!-- Header -->
+            <div class="header">
+                <div class="logo">
+                    <i class="fa-solid fa-car-side"></i>
+                </div>
+                <h1>Smart Car Wash</h1>
+                <p>ระบบจองและบริหารตู้ล้างรถอัตโนมัติ</p>
+            </div>
+
+            <!-- Message -->
+            <div id="message" class="message"></div>
+
+            <!-- Google Login Section -->
+            <div class="google-login-section">
+                <div style="text-align: center; margin-bottom: 1rem;">
+                    <p style="color: #cbd5e1; font-size: 0.9rem;">เข้าสู่ระบบ / สมัครสมาชิก</p>
+                </div>
+
+                <div id="googleSignInButton"></div>
+            </div>
+
+            <!-- Info Box -->
+            <div class="info-box">
+                <strong>ข้อมูล:</strong>
+                ระบบนี้ใช้ Google OAuth 2.0 เพื่อความปลอดภัย ข้อมูลของคุณจะถูกเก็บรักษาเป็นความลับ
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        const CLIENT_ID = document.querySelector('meta[name="google-client-id"]').content;
+
+        function showMessage(type, message) {
+            const el = document.getElementById('message');
+            el.className = 'message ' + type;
+            el.innerHTML = (type === 'error' ? '<i class="fa-solid fa-circle-exclamation"></i>' : '<i class="fa-solid fa-check-circle"></i>') + ' <span>' + message + '</span>';
+            if (type === 'error') {
+                setTimeout(() => el.style.display = 'none', 5000);
+            }
+        }
+
+        async function handleGoogleCallback(response) {
+            try {
+                const res = await fetch(`${API_BASE}/auth/google`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken: response.credential })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('refreshToken', data.refreshToken);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    showMessage('success', data.message);
+                    // Redirect immediately to Bay1
+                    window.location.href = '/customer.html#Bay4';
+                } else {
+                    showMessage('error', data.message || 'เข้าสู่ระบบไม่สำเร็จ');
+                }
+            } catch (err) {
+                showMessage('error', 'เกิดข้อผิดพลาด: ' + err.message);
+            }
+        }
+
+        window.addEventListener('load', () => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                window.location.href = '/customer.html';
+                return;
+            }
+
+            // Initialize Google Sign-In
+            google.accounts.id.initialize({
+                client_id: CLIENT_ID,
+                callback: handleGoogleCallback,
+                auto_select: false
+            });
+
+            // Render the sign-in button
+            google.accounts.id.renderButton(
+                document.getElementById('googleSignInButton'),
+                {
+                    type: 'standard',
+                    theme: 'filled_blue',
+                    size: 'large',
+                    text: 'signin_with',
+                    locale: 'th'
+                }
+            );
+        });
+    </script>
+</body>
+</html>
+

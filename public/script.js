@@ -48,6 +48,7 @@ async function fetchMachines() {
             allMachines = data.data;
             renderMachines(data.data);
             renderBaySelector(data.data);
+            renderControlBays(data.data);
         }
     } catch (err) {
         document.getElementById('machinesList').innerHTML = '<p style="color:#ef4444; text-align:center;">Connection Error</p>';
@@ -118,12 +119,12 @@ setInterval(() => {
 
 function renderBaySelector(machines) {
     const el = document.getElementById('baySelector');
+    if (!el) return;
     el.innerHTML = machines.map(m => `
         <button class="bay-tab ${selectedBayId == m.id ? 'selected' : ''}" onclick="selectBay(${m.id})">
             <span class="machine-status-dot ${m.status === 'idle' ? 'dot-idle' : 'dot-busy'}"></span>Bay ${m.id}
         </button>
     `).join('');
-    // Auto-select first bay if none selected
     if (!selectedBayId && machines.length > 0) {
         selectBay(machines[0].id);
     }
@@ -134,8 +135,96 @@ function selectBay(id) {
     document.querySelectorAll('.bay-tab').forEach(btn => btn.classList.remove('selected'));
     const tabs = document.querySelectorAll('.bay-tab');
     tabs.forEach(t => { if (t.textContent.includes(`Bay ${id}`)) t.classList.add('selected'); });
-    document.getElementById('cmdResult').textContent = `เลือกช่อง Bay ${id} แล้ว`;
-    document.getElementById('cmdResult').style.color = '#94a3b8';
+    const cmdResult = document.getElementById('cmdResult');
+    if (cmdResult) {
+        cmdResult.textContent = `เลือกช่อง Bay ${id} แล้ว`;
+        cmdResult.style.color = '#94a3b8';
+    }
+}
+
+// ─── Control Bay Cards (Card-per-Bay Design) ─────────────────
+function renderControlBays(machines) {
+    const el = document.getElementById('controlBayGrid');
+    if (!el) return;
+    if (machines.length === 0) {
+        el.innerHTML = '<div class="loading-state">ไม่พบตู้ระบบ</div>';
+        return;
+    }
+
+    el.innerHTML = machines.map(m => {
+        const isBusy = m.status === 'busy';
+        const hasSession = !!m.session_id;
+        const displayName = m.user_name || m.user_phone || m.user_email || 'แอดมิน (Admin)';
+
+        const infoContent = isBusy
+            ? `<div>ผู้ใช้: <strong>${displayName}</strong></div>
+               ${hasSession ? `<div>ยอดเงิน: <strong style="color:#60a5fa">฿${m.user_balance ?? '—'}</strong>
+               <span class="cbc-elapsed" data-start="${m.start_time}">${getElapsed(m.start_time)}</span></div>` : '<div style="color:var(--muted); font-size:0.8rem;">ไม่มีเซสชันถูกหักเงิน</div>'}`
+            : '<span style="color:var(--muted)"><i class="fa-solid fa-check-circle" style="color:#34d399; margin-right:0.3rem;"></i>ว่าง — พร้อมใช้งาน</span>';
+
+        return `
+        <div class="control-bay-card ${isBusy ? 'cbc-busy' : 'cbc-idle'}">
+            <div class="control-bay-header">
+                <div class="control-bay-name">
+                    <span class="cbc-dot"></span>
+                    ${m.name}
+                </div>
+                <span class="control-bay-status">${isBusy ? 'กำลังใช้' : 'ว่าง'}</span>
+            </div>
+
+            <div class="control-bay-info">
+                <div>${infoContent}</div>
+            </div>
+
+            <div class="control-cmd-grid">
+                <button class="control-cmd-btn ccb-water" onclick="sendCommandToBay(${m.id}, 'WATER_ON', this)">
+                    <i class="fa-solid fa-droplet"></i><span>น้ำ</span>
+                </button>
+                <button class="control-cmd-btn ccb-foam" onclick="sendCommandToBay(${m.id}, 'FOAM_ON', this)">
+                    <i class="fa-solid fa-soap"></i><span>โฟม</span>
+                </button>
+                <button class="control-cmd-btn ccb-air" onclick="sendCommandToBay(${m.id}, 'AIR_ON', this)">
+                    <i class="fa-solid fa-wind"></i><span>เป่าลม</span>
+                </button>
+                <button class="control-cmd-btn ccb-wax" onclick="sendCommandToBay(${m.id}, 'WAX_ON', this)">
+                    <i class="fa-solid fa-star"></i><span>เคลือบสี</span>
+                </button>
+                <button class="control-cmd-btn ccb-tyre" onclick="sendCommandToBay(${m.id}, 'TYRE_ON', this)">
+                    <i class="fa-solid fa-circle-dot"></i><span>ยางดำ</span>
+                </button>
+                <button class="control-cmd-btn ccb-stop" onclick="sendCommandToBay(${m.id}, 'STOP', this)">
+                    <i class="fa-solid fa-stop"></i><span>หยุด</span>
+                </button>
+            </div>
+            ${isBusy ? `<button class="cbc-reset-btn" onclick="forceResetBay(${m.id})"><i class="fa-solid fa-rotate-left"></i> Force Reset</button>` : ''}
+        </div>`;
+    }).join('');
+}
+
+async function sendCommandToBay(machineId, command, btnEl) {
+    // Visual feedback on the button
+    if (btnEl) btnEl.classList.add('sending');
+
+    try {
+        const res = await fetch('/admin/command', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ machine_id: machineId, command })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast(`${CMD_LABELS[command]} → Bay ${machineId} สำเร็จ!`);
+        } else {
+            showToast(data.message || 'เกิดข้อผิดพลาด', 'error');
+        }
+        fetchMachines();
+    } catch (e) {
+        showToast('Connection Error', 'error');
+    } finally {
+        if (btnEl) {
+            setTimeout(() => btnEl.classList.remove('sending'), 600);
+        }
+    }
 }
 
 // ─── Service Command ──────────────────────────────────────────

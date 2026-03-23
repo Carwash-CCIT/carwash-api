@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Car Wash — ตู้ล้างรถ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #030712 0%, #0f172a 100%);
+            min-height: 100vh;
+            font-family: 'Outfit', sans-serif;
+            color: #f8fafc;
+            padding: 1rem;
+        }
+
+        .header {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #3b82f6, #6d28d9);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .header-text h1 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.2rem;
+        }
+
+        .header-text p {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .balance {
+            text-align: right;
+        }
+
+        .balance-label {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        .balance-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #34d399;
+        }
+
+        .btn-logout {
+            padding: 0.7rem 1.5rem;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-logout:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .machine-interface {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .machine-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .machine-number {
+            font-size: 3rem;
+            font-weight: 800;
+            color: #3b82f6;
+            margin-bottom: 0.5rem;
+        }
+
+        .machine-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-badge.idle {
+            background: rgba(16, 185, 129, 0.2);
+            color: #6ee7b7;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-badge.busy {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .balance-display {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 16px;
+            padding: 2.5rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .balance-amount {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: #6ee7b7;
+        }
+
+        .session-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            display: none;
+        }
+
+        .session-info.show {
+            display: block;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .info-value {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #93c5fd;
+        }
+
+        .timer {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #f8fafc;
+            text-align: center;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .btn-stop {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 1rem;
+        }
+
+        .btn-stop:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-stop:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .machine-number {
+                font-size: 2rem;
+            }
+
+            .balance-amount {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-group">
+            <div class="logo">
+                <i class="fa-solid fa-car-side"></i>
+            </div>
+            <div class="header-text">
+                <h1 id="userName">สวัสดี</h1>
+                <p>Smart Car Wash</p>
+            </div>
+        </div>
+        <div class="user-info">
+            <div class="balance">
+                <div class="balance-label">ยอดเงิน</div>
+                <div class="balance-value" id="userBalance">฿0</div>
+            </div>
+            <button class="btn-logout" onclick="handleLogout()">
+                <i class="fa-solid fa-sign-out-alt"></i> ออกจากระบบ
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="machine-interface">
+            <!-- Machine Header -->
+            <div class="machine-header">
+                <div class="machine-number" id="machineNumber">Bay 1</div>
+                <div class="machine-status">
+                    <span>สถานะ:</span>
+                    <div class="status-badge idle" id="machineStatus">
+                        <i class="fa-solid fa-check-circle"></i> พร้อมใช้งาน
+                    </div>
+                </div>
+            </div>
+
+            <!-- Balance Display -->
+            <div class="balance-display">
+                <div class="balance-label"><i class="fa-solid fa-wallet"></i> ยอดเงินคงเหลือ</div>
+                <div class="balance-amount" id="bayBalance">฿0</div>
+            </div>
+
+            <!-- Session Info -->
+            <div class="session-info" id="sessionInfo">
+                <div style="text-align: center; margin-bottom: 1rem;">
+                    <div style="color: #64748b; font-size: 0.9rem; margin-bottom: 0.5rem;">เวลาใช้งาน</div>
+                    <div class="timer" id="timer">00:00</div>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">ผู้ใช้:</span>
+                    <span class="info-value" id="sessionUser">—</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">จำนวนเงินที่จอง:</span>
+                    <span class="info-value">฿<span id="sessionAmount">0</span></span>
+                </div>
+                <button class="btn-stop" onclick="stopService()" id="stopBtn">
+                    <i class="fa-solid fa-stop"></i> หยุดบริการ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        
+        let user = null;
+        let token = null;
+        let currentMachineId = null;
+        let currentSession = null;
+        let timerInterval = null;
+
+        // Initialize
+        window.addEventListener('load', async () => {
+            token = localStorage.getItem('token');
+            const userStr = localStorage.getItem('user');
+
+            if (!token || !userStr) {
+                window.location.href = '/customer-login.html';
+                return;
+            }
+
+            user = JSON.parse(userStr);
+            document.getElementById('userName').textContent = `สวัสดี, ${user.name || user.email}`;
+            document.getElementById('userBalance').textContent = `฿${user.balance || 0}`;
+
+            // Get bay from URL hash
+            const bayName = window.location.hash.replace('#', '') || 'Bay1';
+            const bayNum = bayName.replace('Bay', '');
+            currentMachineId = parseInt(bayNum) || 1;
+            
+            document.getElementById('machineNumber').textContent = `Bay ${currentMachineId}`;
+            document.getElementById('bayBalance').textContent = `฿${user.balance || 0}`;
+            
+            fetchBayStatus();
+            setInterval(fetchBayStatus, 5000);
+        });
+
+        async function fetchBayStatus() {
+            if (!currentMachineId) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/bay/${currentMachineId}/session`);
+                const data = await res.json();
+
+                if (data.session) {
+                    currentSession = data.session;
+                    document.getElementById('machineStatus').className = 'status-badge busy';
+                    document.getElementById('machineStatus').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังใช้งาน';
+                    document.getElementById('sessionInfo').classList.add('show');
+                    document.getElementById('sessionUser').textContent = data.session.user_name || 'ผู้ใช้';
+                    document.getElementById('sessionAmount').textContent = data.session.reserved_amount;
+                    startTimer(data.session.id);
+                } else {
+                    currentSession = null;
+                    document.getElementById('machineStatus').className = 'status-badge idle';
+                    document.getElementById('machineStatus').innerHTML = '<i class="fa-solid fa-check-circle"></i> พร้อมใช้งาน';
+                    document.getElementById('sessionInfo').classList.remove('show');
+                    stopTimer();
+                }
+            } catch (err) {
+                console.error('Error fetching status:', err);
+            }
+        }
+
+        async function stopService() {
+            if (!currentSession) return;
+
+            if (!confirm('คุณต้องการหยุดบริการหรือไม่?')) return;
+
+            document.getElementById('stopBtn').disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/service/stop`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        session_id: currentSession.id,
+                        actual_amount: currentSession.reserved_amount
+                    })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    user.balance = data.balance;
+                    document.getElementById('userBalance').textContent = `฿${user.balance}`;
+                    document.getElementById('bayBalance').textContent = `฿${user.balance}`;
+                    localStorage.setItem('user', JSON.stringify(user));
+                    await fetchBayStatus();
+                } else {
+                    alert(data.message || 'หยุดบริการไม่สำเร็จ');
+                }
+            } catch (err) {
+                alert('เกิดข้อผิดพลาด: ' + err.message);
+            } finally {
+                document.getElementById('stopBtn').disabled = false;
+            }
+        }
+
+        function startTimer(sessionId) {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            let seconds = 0;
+            timerInterval = setInterval(() => {
+                seconds++;
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                document.getElementById('timer').textContent = 
+                    `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            document.getElementById('timer').textContent = '00:00';
+        }
+
+        function handleLogout() {
+            if (confirm('คุณต้องการออกจากระบบใช่ไหม?')) {
+                fetch(`${API_BASE}/auth/logout`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }).catch(() => {});
+
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+                localStorage.removeItem('user');
+                
+                stopTimer();
+                window.location.href = '/customer-login.html';
+            }
+        }
+    </script>
+</body>
+</html>

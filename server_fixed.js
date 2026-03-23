@@ -86,7 +86,7 @@ app.use((req, res, next) => {
 // ─── RATE LIMITING ──────────────────────────────────────────
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 999, // Rate limit ??????????????
+    max: 5,
     message: { message: '❌ ลองเข้าสู่ระบบเกินครั้ง กรุณารอ 15 นาที' },
     validate: { trustProxy: false },
     standardHeaders: true,
