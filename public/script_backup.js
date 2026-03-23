@@ -178,28 +178,19 @@ function renderControlBays(machines) {
 
             <div class="control-cmd-grid">
                 <button class="control-cmd-btn ccb-water" onclick="sendCommandToBay(${m.id}, 'WATER_ON', this)">
-                    <i class="fa-solid fa-droplet"></i><span>ฉีดน้ำ</span>
+                    <i class="fa-solid fa-droplet"></i><span>น้ำ</span>
                 </button>
                 <button class="control-cmd-btn ccb-foam" onclick="sendCommandToBay(${m.id}, 'FOAM_ON', this)">
-                    <i class="fa-solid fa-soap"></i><span>ฉีดโฟม</span>
+                    <i class="fa-solid fa-soap"></i><span>โฟม</span>
                 </button>
-                <button class="control-cmd-btn ccb-air" onclick="sendCommandToBay(${m.id}, 'AIR_DRY', this)">
+                <button class="control-cmd-btn ccb-air" onclick="sendCommandToBay(${m.id}, 'AIR_ON', this)">
                     <i class="fa-solid fa-wind"></i><span>เป่าลม</span>
                 </button>
-                <button class="control-cmd-btn ccb-air-fill" onclick="sendCommandToBay(${m.id}, 'AIR_FILL', this)">
-                    <i class="fa-solid fa-fan"></i><span>เติมลม</span>
-                </button>
-                <button class="control-cmd-btn ccb-vacuum" onclick="sendCommandToBay(${m.id}, 'VACUUM', this)">
-                    <i class="fa-solid fa-tornado"></i><span>ดูดฝุ่น</span>
-                </button>
                 <button class="control-cmd-btn ccb-wax" onclick="sendCommandToBay(${m.id}, 'WAX_ON', this)">
-                    <i class="fa-solid fa-star"></i><span>เคลือบเงา</span>
+                    <i class="fa-solid fa-star"></i><span>เคลือบสี</span>
                 </button>
                 <button class="control-cmd-btn ccb-tyre" onclick="sendCommandToBay(${m.id}, 'TYRE_ON', this)">
                     <i class="fa-solid fa-circle-dot"></i><span>ยางดำ</span>
-                </button>
-                <button class="control-cmd-btn ccb-handwash" onclick="sendCommandToBay(${m.id}, 'HAND_WASH', this)">
-                    <i class="fa-solid fa-water"></i><span>ล้างมือ</span>
                 </button>
                 <button class="control-cmd-btn ccb-stop" onclick="sendCommandToBay(${m.id}, 'STOP', this)">
                     <i class="fa-solid fa-stop"></i><span>หยุด</span>
@@ -241,7 +232,7 @@ const CMD_LABELS = {
     WATER_ON: '💧 ฉีดน้ำ', 
     FOAM_ON: '🫧 ฉีดโฟม', 
     AIR_DRY: '💨 เป่าลม',
-    AIR_FILL: '🌬️ เติมลม',
+    AIR_FILL: '🌬 เติมลม',
     VACUUM: '🌀 ดูดฝุ่น',
     WAX_ON: '⭐ เคลือบเงา', 
     TYRE_ON: '⚫ ยางดำ', 
