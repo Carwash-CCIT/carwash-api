@@ -515,4 +515,5 @@ async function simulateTopupSuccess() {
 
 
 // ─── Start ─────────────────────────────────────────────────────
-init();
+init();/ /   G o   t o   W a s h   P a g e   f u n c t i o n   a d d e d  
+ 
