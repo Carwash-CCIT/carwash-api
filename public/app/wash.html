@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart Car Wash — ข้อมูลบริการ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
+            color: #ffffff;
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-left h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.3rem;
+        }
+
+        .header-left p {
+            font-size: 0.95rem;
+            color: #b0b0b0;
+        }
+
+        .header-right {
+            text-align: right;
+        }
+
+        .user-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .balance-display {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #4ade80;
+            margin-bottom: 0.5rem;
+        }
+
+        .balance-label {
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        /* Info Cards */
+        .info-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .info-card-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+
+        .info-card-label {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .info-card-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-card-status {
+            font-size: 0.85rem;
+            color: #4ade80;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Message */
+        .message-box {
+            background: rgba(74, 222, 128, 0.1);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .message-box h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #4ade80;
+        }
+
+        .message-box p {
+            font-size: 1rem;
+            color: #b0b0b0;
+            line-height: 1.6;
+        }
+
+        /* Buttons */
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            color: white;
+            box-shadow: 0 4px 16px rgba(74, 222, 128, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(74, 222, 128, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+                gap: 1rem;
+            }
+
+            .header-right {
+                text-align: center;
+            }
+
+            .info-section {
+                grid-template-columns: 1fr;
+            }
+
+            .balance-display {
+                font-size: 1.8rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <h1>🚗 Smart Car Wash</h1>
+                <p>ระบบล้างรถอัตโนมัติ</p>
+            </div>
+            <div class="header-right">
+                <div class="user-name" id="userName">—</div>
+                <div class="balance-display">
+                    <span style="font-size: 1.4rem; color: #888;">฿</span><span id="userBalance">0</span>
+                </div>
+                <div class="balance-label">ยอดเงินคงเหลือ</div>
+            </div>
+        </div>
+
+        <!-- Info Cards -->
+        <div class="info-section">
+            <!-- Bay Info -->
+            <div class="info-card">
+                <div class="info-card-icon">🏢</div>
+                <div class="info-card-label">ช่องบริการ</div>
+                <div class="info-card-value" id="bayNumber">Bay 1</div>
+                <div class="info-card-status">
+                    <div class="status-dot"></div>
+                    <span>พร้อมใช้งาน</span>
+                </div>
+            </div>
+
+            <!-- Status Info -->
+            <div class="info-card">
+                <div class="info-card-icon">✨</div>
+                <div class="info-card-label">สถานะ</div>
+                <div class="info-card-value" id="userStatus">ว่าง</div>
+                <div class="info-card-status">
+                    <div class="status-dot"></div>
+                    <span>เตรียมพร้อม</span>
+                </div>
+            </div>
+
+            <!-- Time Info -->
+            <div class="info-card">
+                <div class="info-card-icon">⏱️</div>
+                <div class="info-card-label">เวลา</div>
+                <div class="info-card-value" id="currentTime">00:00</div>
+                <div class="info-card-status">
+                    <div class="status-dot"></div>
+                    <span>ระบบ Online</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message -->
+        <div class="message-box">
+            <h2>✅ พร้อมใช้งาน</h2>
+            <p>ขณะนี้ช่องบริการของคุณพร้อมใช้งาน<br>
+            กรุณาขึ้นไปที่หน้าตู้เพื่อเริ่มบริการ</p>
+        </div>
+
+        <!-- Buttons -->
+        <div class="button-group">
+            <button class="btn btn-primary" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+            </button>
+            <button class="btn btn-secondary" onclick="goBack()">
+                <i class="fa-solid fa-arrow-left"></i> กลับไป
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Get URL parameters
+        const params = new URLSearchParams(window.location.search);
+        const bayId = params.get('bay') || '1';
+        const token = params.get('token') || localStorage.getItem('cw_token');
+
+        // Load user data
+        async function loadUser() {
+            if (!token) {
+                window.location.href = '/app';
+                return;
+            }
+
+            try {
+                const res = await fetch('/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    document.getElementById('userName').textContent = data.user.name || 'User';
+                    document.getElementById('userBalance').textContent = (data.user.balance || 0).toLocaleString();
+                    document.getElementById('bayNumber').textContent = `Bay ${bayId}`;
+                } else {
+                    window.location.href = '/app';
+                }
+            } catch (err) {
+                console.error('Error loading user:', err);
+                window.location.href = '/app';
+            }
+        }
+
+        // Update time
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString('th-TH', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('cw_token');
+            localStorage.removeItem('cw_refresh');
+            window.location.href = '/app';
+        }
+
+        // Go back
+        function goBack() {
+            window.history.back();
+        }
+
+        // Init
+        loadUser();
+        updateTime();
+        setInterval(updateTime, 1000);
+    </script>
+</body>
+</html>
