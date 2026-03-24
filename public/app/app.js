@@ -1,27 +1,23 @@
 // ─── URL Params ────────────────────────────────────────────────
 const params = new URLSearchParams(window.location.search);
-const bayId = params.get('bay') || '?';
+const bayId = params.get('bay') || '1';
 
 // ─── Google OAuth ──────────────────────────────────────────────
 const GOOGLE_CLIENT_ID = '1015275273603-ch7v0cops75lc14gib41q0cfv66ntb5v.apps.googleusercontent.com';
 
-// ─── Init Bay UI ───────────────────────────────────────────────
-document.getElementById('bayBadgeText').textContent = bayId !== '?' ? `ช่อง Bay ${bayId}` : 'ไม่ระบุช่อง';
-
 // ─── View Elements ─────────────────────────────────────────────
 const viewAuth = document.getElementById('viewAuth');
-const viewInfo = document.getElementById('viewInfo');
 const toastEl = document.getElementById('toast');
 
 // ─── Init ──────────────────────────────────────────────────────
 function init() {
     const token = localStorage.getItem('cw_token');
     if (token) {
-        fetchProfile();
+        // ถ้ามี token แล้ว ให้เข้าไป wash.html เลย
+        goToWash();
     } else {
-        switchView('viewAuth');
+        initGoogleSignIn();
     }
-    initGoogleSignIn();
 }
 
 // ─── Google Sign-In Init ───────────────────────────────────────
@@ -69,70 +65,34 @@ async function handleGoogleCallback(response) {
         if (res.ok) {
             localStorage.setItem('cw_token', data.token);
             if (data.refreshToken) localStorage.setItem('cw_refresh', data.refreshToken);
-            showToast(data.message);
+            showToast('✅ เข้าสู่ระบบสำเร็จ');
             setTimeout(() => {
-                renderInfo(data.user);
+                goToWash();
             }, 500);
         } else {
             showToast(data.message || 'Google Login ล้มเหลว', 'error');
         }
     } catch (e) {
         console.error('Google login error:', e);
-        showToast('Connection Error', 'error');
+        showToast('❌ Connection Error', 'error');
     }
 }
 
 // ─── Toast ─────────────────────────────────────────────────────
 function showToast(msg, type = 'success') {
-    toastEl.innerHTML = `<i class="fa-solid fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> <span>${msg}</span>`;
+    toastEl.innerHTML = msg;
     toastEl.className = `toast show ${type}`;
     if (window._tt) clearTimeout(window._tt);
     window._tt = setTimeout(() => { toastEl.className = `toast hidden ${type}`; }, 3000);
 }
 
-// ─── Switch Views ──────────────────────────────────────────────
-function switchView(id) {
-    [viewAuth, viewInfo].forEach(el => el.classList.add('hidden'));
-    if (document.getElementById(id)) {
-        document.getElementById(id).classList.remove('hidden');
-    }
-}
-
-// ─── Fetch Profile (auto-login) ────────────────────────────────
-async function fetchProfile() {
-    const token = localStorage.getItem('cw_token');
-    if (!token) { switchView('viewAuth'); return; }
-
-    try {
-        const url = bayId !== '?' ? `/me?machine_id=${bayId}` : '/me';
-        const res = await fetch(url, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-
-        if (res.ok) {
-            renderInfo(data.user);
-        } else {
-            localStorage.removeItem('cw_token');
-            switchView('viewAuth');
-        }
-    } catch (e) {
-        console.error('Fetch profile error:', e);
-        switchView('viewAuth');
-    }
-}
-
-// ─── Render Info Page ──────────────────────────────────────────
-function renderInfo(user) {
-    document.getElementById('infoName').textContent = user.name || user.phone || user.email || 'User';
-    document.getElementById('infoBalance').textContent = (user.balance || 0).toLocaleString();
-    document.getElementById('infoBay').textContent = bayId !== '?' ? bayId : 'ไม่ระบุ';
-    switchView('viewInfo');
-}
-
 // ─── Go to Wash Page ───────────────────────────────────────────
 function goToWash() {
     const token = localStorage.getItem('cw_token');
+    if (!token) {
+        showToast('❌ ไม่พบ Token', 'error');
+        return;
+    }
     window.location.href = `/app/wash.html?bay=${bayId}&token=${encodeURIComponent(token)}`;
 }
 
@@ -149,7 +109,6 @@ async function logout() {
     }
     localStorage.removeItem('cw_token');
     localStorage.removeItem('cw_refresh');
-    switchView('viewAuth');
     location.reload();
 }
 
