@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart Car Wash — บริการล้างรถ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
+            color: #ffffff;
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-left h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.3rem;
+        }
+
+        .header-left p {
+            font-size: 0.95rem;
+            color: #b0b0b0;
+        }
+
+        .header-right {
+            text-align: right;
+        }
+
+        .user-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .balance-display {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #4ade80;
+            margin-bottom: 0.5rem;
+        }
+
+        .balance-label {
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-topup, .btn-logout {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-topup {
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            color: white;
+            box-shadow: 0 4px 16px rgba(74, 222, 128, 0.3);
+        }
+
+        .btn-topup:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(74, 222, 128, 0.4);
+        }
+
+        .btn-logout {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-logout:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        /* Bay Info */
+        .bay-info {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bay-info-left h3 {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .bay-info-left p {
+            font-size: 2rem;
+            font-weight: 800;
+        }
+
+        .bay-status {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .status-indicator {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-text {
+            text-align: right;
+        }
+
+        .status-text p:first-child {
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .status-text p:last-child {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #4ade80;
+        }
+
+        /* Services Grid */
+        .services-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .service-btn {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 2rem 1rem;
+            color: #ffffff;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .service-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+            transition: left 0.5s;
+        }
+
+        .service-btn:hover::before {
+            left: 100%;
+        }
+
+        .service-btn:hover {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(255, 255, 255, 0.1);
+        }
+
+        .service-btn.active {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-color: #60a5fa;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .service-icon {
+            font-size: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .service-label {
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        /* Emergency Stop */
+        .emergency-stop {
+            margin-top: 2rem;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .btn-emergency {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border: none;
+            border-radius: 16px;
+            padding: 1rem 2rem;
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
+            min-width: 300px;
+            justify-content: center;
+        }
+
+        .btn-emergency:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(239, 68, 68, 0.5);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: rgba(15, 15, 15, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            color: #fff;
+            font-size: 1rem;
+            z-index: 1000;
+            animation: slideUp 0.3s ease;
+            max-width: 400px;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.hidden {
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+                gap: 1rem;
+            }
+
+            .header-right {
+                text-align: center;
+            }
+
+            .bay-info {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .services-grid {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 1rem;
+            }
+
+            .service-btn {
+                padding: 1.5rem 0.75rem;
+            }
+
+            .service-icon {
+                font-size: 2.5rem;
+            }
+
+            .btn-emergency {
+                min-width: 250px;
+                padding: 0.8rem 1.5rem;
+                font-size: 1rem;
+            }
+
+            .balance-display {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <h1>🚗 Smart Car Wash</h1>
+                <p>ระบบล้างรถอัตโนมัติ</p>
+            </div>
+            <div class="header-right">
+                <div class="user-name" id="userName">CHXINXx</div>
+                <div class="balance-display">
+                    <span style="font-size: 1.4rem; color: #888;">฿</span><span id="userBalance">0</span>
+                </div>
+                <div class="balance-label">ยอดเงินคงเหลือ</div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <button class="btn-topup" onclick="openTopup()">
+                <i class="fa-solid fa-plus"></i> เติมเงิน
+            </button>
+            <button class="btn-logout" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+            </button>
+        </div>
+
+        <!-- Bay Info -->
+        <div class="bay-info">
+            <div class="bay-info-left">
+                <h3>ช่องบริการ</h3>
+                <p id="bayNumber">Bay 1</p>
+            </div>
+            <div class="bay-status">
+                <div>
+                    <div class="status-indicator"></div>
+                </div>
+                <div class="status-text">
+                    <p>สถานะ</p>
+                    <p id="bayStatus">พร้อมใช้งาน</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Services -->
+        <h2 class="services-title">เลือกบริการ</h2>
+        <div class="services-grid">
+            <button class="service-btn" onclick="startService('WATER_ON')">
+                <div class="service-icon">💧</div>
+                <div class="service-label">ฉีดน้ำ</div>
+            </button>
+            <button class="service-btn" onclick="startService('FOAM_ON')">
+                <div class="service-icon">🫧</div>
+                <div class="service-label">ฉีดโฟม</div>
+            </button>
+            <button class="service-btn" onclick="startService('AIR_DRY')">
+                <div class="service-icon">💨</div>
+                <div class="service-label">เป่าลม</div>
+            </button>
+            <button class="service-btn" onclick="startService('AIR_FILL')">
+                <div class="service-icon">🌬️</div>
+                <div class="service-label">เติมลม</div>
+            </button>
+            <button class="service-btn" onclick="startService('VACUUM')">
+                <div class="service-icon">🌀</div>
+                <div class="service-label">ดูดฝุ่น</div>
+            </button>
+            <button class="service-btn" onclick="startService('WAX_ON')">
+                <div class="service-icon">⭐</div>
+                <div class="service-label">เคลือบเงา</div>
+            </button>
+            <button class="service-btn" onclick="startService('TYRE_ON')">
+                <div class="service-icon">⚫</div>
+                <div class="service-label">ยางดำ</div>
+            </button>
+            <button class="service-btn" onclick="startService('HAND_WASH')">
+                <div class="service-icon">🚰</div>
+                <div class="service-label">ล้างมือ</div>
+            </button>
+        </div>
+
+        <!-- Emergency Stop -->
+        <div class="emergency-stop">
+            <button class="btn-emergency" onclick="emergencyStop()">
+                <i class="fa-solid fa-stop"></i> ปุ่มหยุดฉุกเฉิน
+            </button>
+        </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script>
+        // Get URL parameters
+        const params = new URLSearchParams(window.location.search);
+        const bayId = params.get('bay') || '1';
+        const token = params.get('token') || localStorage.getItem('token');
+
+        // Load user data
+        function loadUser() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            document.getElementById('userName').textContent = user.name || 'CHXINXx';
+            document.getElementById('userBalance').textContent = (user.balance || 0).toLocaleString();
+            document.getElementById('bayNumber').textContent = `Bay ${bayId}`;
+        }
+
+        // Show toast
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            setTimeout(() => {
+                toast.className = 'toast hidden';
+            }, 3000);
+        }
+
+        // Start service
+        async function startService(command) {
+            const btn = event.target.closest('.service-btn');
+            btn.classList.add('active');
+
+            try {
+                const response = await fetch('/service/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        machine_id: bayId,
+                        command: command,
+                        reserve_amount: 10
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showToast(`✅ ${data.message}`, 'success');
+                    // Update balance
+                    const user = JSON.parse(localStorage.getItem('user') || '{}');
+                    user.balance = data.balance;
+                    localStorage.setItem('user', JSON.stringify(user));
+                    document.getElementById('userBalance').textContent = (user.balance || 0).toLocaleString();
+                } else {
+                    showToast(`❌ ${data.message}`, 'error');
+                }
+            } catch (err) {
+                showToast('❌ เกิดข้อผิดพลาด', 'error');
+            } finally {
+                btn.classList.remove('active');
+            }
+        }
+
+        // Emergency stop
+        function emergencyStop() {
+            if (confirm('ยืนยันการหยุดฉุกเฉิน?')) {
+                showToast('🛑 เปิดใจการปุ่มหยุดฉุกเฉิน', 'success');
+            }
+        }
+
+        // Open topup
+        function openTopup() {
+            window.location.href = '/app?view=topup';
+        }
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/app';
+        }
+
+        // Init
+        loadUser();
+    </script>
+</body>
+</html>
