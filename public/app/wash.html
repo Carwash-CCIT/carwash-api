@@ -290,11 +290,11 @@
             <!-- Time Info -->
             <div class="info-card">
                 <div class="info-card-icon">⏱️</div>
-                <div class="info-card-label">เวลา</div>
-                <div class="info-card-value" id="currentTime">00:00</div>
+                <div class="info-card-label">เวลาการใช้งาน</div>
+                <div class="info-card-value" id="elapsedTime">00:00</div>
                 <div class="info-card-status">
                     <div class="status-dot idle"></div>
-                    <span>ระบบ Online</span>
+                    <span id="timeStatus">เพิ่งเข้ามา</span>
                 </div>
             </div>
         </div>
@@ -322,6 +322,9 @@
         const params = new URLSearchParams(window.location.search);
         const bayId = params.get('bay') || '1';
         const token = params.get('token') || localStorage.getItem('cw_token');
+        
+        // Track login time
+        const loginTime = Date.now();
 
         // Load user data and bay status
         async function loadUser() {
@@ -398,14 +401,29 @@
             }
         }
 
-        // Update time
-        function updateTime() {
-            const now = new Date();
-            document.getElementById('currentTime').textContent = now.toLocaleTimeString('th-TH', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
+        // Update elapsed time
+        function updateElapsedTime() {
+            const now = Date.now();
+            const elapsed = Math.floor((now - loginTime) / 1000);
+            
+            const hours = Math.floor(elapsed / 3600);
+            const minutes = Math.floor((elapsed % 3600) / 60);
+            const seconds = elapsed % 60;
+            
+            const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            document.getElementById('elapsedTime').textContent = timeStr;
+            
+            // Update status text
+            const timeStatus = document.getElementById('timeStatus');
+            if (elapsed < 60) {
+                timeStatus.textContent = 'เพิ่งเข้ามา';
+            } else if (elapsed < 300) {
+                timeStatus.textContent = `${minutes} นาที`;
+            } else if (elapsed < 3600) {
+                timeStatus.textContent = `${minutes} นาที`;
+            } else {
+                timeStatus.textContent = `${hours} ชั่วโมง`;
+            }
         }
 
         // Logout
@@ -422,8 +440,8 @@
 
         // Init
         loadUser();
-        updateTime();
-        setInterval(updateTime, 1000);
+        updateElapsedTime();
+        setInterval(updateElapsedTime, 1000);
         // Refresh bay status every 3 seconds
         setInterval(fetchBayStatus, 3000);
     </script>
