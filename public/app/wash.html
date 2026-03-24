@@ -112,7 +112,6 @@
 
         .info-card-status {
             font-size: 0.85rem;
-            color: #4ade80;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -122,9 +121,24 @@
         .status-dot {
             width: 8px;
             height: 8px;
-            background: #4ade80;
             border-radius: 50%;
             animation: pulse 2s infinite;
+        }
+
+        .status-dot.idle {
+            background: #4ade80;
+        }
+
+        .status-dot.busy {
+            background: #ef4444;
+        }
+
+        .info-card-status.idle {
+            color: #4ade80;
+        }
+
+        .info-card-status.busy {
+            color: #ef4444;
         }
 
         @keyframes pulse {
@@ -142,10 +156,19 @@
             margin-bottom: 2rem;
         }
 
+        .message-box.busy {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
         .message-box h2 {
             font-size: 1.5rem;
             margin-bottom: 0.5rem;
             color: #4ade80;
+        }
+
+        .message-box.busy h2 {
+            color: #ef4444;
         }
 
         .message-box p {
@@ -248,7 +271,7 @@
                 <div class="info-card-label">ช่องบริการ</div>
                 <div class="info-card-value" id="bayNumber">Bay 1</div>
                 <div class="info-card-status">
-                    <div class="status-dot"></div>
+                    <div class="status-dot idle"></div>
                     <span>พร้อมใช้งาน</span>
                 </div>
             </div>
@@ -257,10 +280,10 @@
             <div class="info-card">
                 <div class="info-card-icon">✨</div>
                 <div class="info-card-label">สถานะ</div>
-                <div class="info-card-value" id="userStatus">ว่าง</div>
-                <div class="info-card-status">
-                    <div class="status-dot"></div>
-                    <span>เตรียมพร้อม</span>
+                <div class="info-card-value" id="userStatus">—</div>
+                <div class="info-card-status idle" id="statusBox">
+                    <div class="status-dot idle"></div>
+                    <span id="statusText">—</span>
                 </div>
             </div>
 
@@ -270,16 +293,16 @@
                 <div class="info-card-label">เวลา</div>
                 <div class="info-card-value" id="currentTime">00:00</div>
                 <div class="info-card-status">
-                    <div class="status-dot"></div>
+                    <div class="status-dot idle"></div>
                     <span>ระบบ Online</span>
                 </div>
             </div>
         </div>
 
         <!-- Message -->
-        <div class="message-box">
-            <h2>✅ พร้อมใช้งาน</h2>
-            <p>ขณะนี้ช่องบริการของคุณพร้อมใช้งาน<br>
+        <div class="message-box" id="messageBox">
+            <h2 id="messageTitle">✅ พร้อมใช้งาน</h2>
+            <p id="messageText">ขณะนี้ช่องบริการของคุณพร้อมใช้งาน<br>
             กรุณาขึ้นไปที่หน้าตู้เพื่อเริ่มบริการ</p>
         </div>
 
@@ -300,7 +323,7 @@
         const bayId = params.get('bay') || '1';
         const token = params.get('token') || localStorage.getItem('cw_token');
 
-        // Load user data
+        // Load user data and bay status
         async function loadUser() {
             if (!token) {
                 window.location.href = '/app';
@@ -317,12 +340,61 @@
                     document.getElementById('userName').textContent = data.user.name || 'User';
                     document.getElementById('userBalance').textContent = (data.user.balance || 0).toLocaleString();
                     document.getElementById('bayNumber').textContent = `Bay ${bayId}`;
+                    
+                    // Fetch bay status
+                    fetchBayStatus();
                 } else {
                     window.location.href = '/app';
                 }
             } catch (err) {
                 console.error('Error loading user:', err);
                 window.location.href = '/app';
+            }
+        }
+
+        // Fetch bay status from server
+        async function fetchBayStatus() {
+            try {
+                const res = await fetch(`/machines`);
+                const data = await res.json();
+                
+                if (data.data) {
+                    const bay = data.data.find(m => m.id == bayId);
+                    if (bay) {
+                        updateStatusDisplay(bay.status);
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching bay status:', err);
+            }
+        }
+
+        // Update status display
+        function updateStatusDisplay(status) {
+            const statusBox = document.getElementById('statusBox');
+            const statusDot = statusBox.querySelector('.status-dot');
+            const statusText = document.getElementById('statusText');
+            const messageBox = document.getElementById('messageBox');
+            const messageTitle = document.getElementById('messageTitle');
+            const messageText = document.getElementById('messageText');
+            const userStatusEl = document.getElementById('userStatus');
+
+            if (status === 'busy') {
+                userStatusEl.textContent = 'กำลังใช้งาน';
+                statusText.textContent = 'มีผู้ใช้งาน';
+                statusBox.className = 'info-card-status busy';
+                statusDot.className = 'status-dot busy';
+                messageBox.className = 'message-box busy';
+                messageTitle.textContent = '⚠️ กำลังใช้งาน';
+                messageText.textContent = 'ช่องบริการของคุณกำลังถูกใช้งานโดยผู้อื่น<br>กรุณารอสักครู่';
+            } else {
+                userStatusEl.textContent = 'ว่าง';
+                statusText.textContent = 'เตรียมพร้อม';
+                statusBox.className = 'info-card-status idle';
+                statusDot.className = 'status-dot idle';
+                messageBox.className = 'message-box';
+                messageTitle.textContent = '✅ พร้อมใช้งาน';
+                messageText.textContent = 'ขณะนี้ช่องบริการของคุณพร้อมใช้งาน<br>กรุณาขึ้นไปที่หน้าตู้เพื่อเริ่มบริการ';
             }
         }
 
@@ -352,6 +424,8 @@
         loadUser();
         updateTime();
         setInterval(updateTime, 1000);
+        // Refresh bay status every 3 seconds
+        setInterval(fetchBayStatus, 3000);
     </script>
 </body>
 </html>
