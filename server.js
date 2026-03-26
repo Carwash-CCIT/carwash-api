@@ -86,7 +86,7 @@ app.use((req, res, next) => {
 // ─── RATE LIMITING ──────────────────────────────────────────
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 20, // PERF: ลดจาก 999 → 20 เพื่อป้องกัน brute-force จริงๆ
+    max: 20,
     message: { message: '❌ ลองเข้าสู่ระบบเกินครั้ง กรุณารอ 15 นาที' },
     validate: { trustProxy: false },
     standardHeaders: true,
@@ -111,13 +111,12 @@ const db = new sqlite3.Database(dbPath, (err) => {
     console.log('✅ เชื่อมต่อฐานข้อมูล data/carwash.db สำเร็จ');
     
     db.serialize(() => {
-        // ─── PERF: ปรับ PRAGMA เพื่อเพิ่มความเร็ว ─────────────────
         db.run('PRAGMA journal_mode = WAL');
-        db.run('PRAGMA cache_size = 10000');       // เพิ่มจาก 5000 → 10000 pages
+        db.run('PRAGMA cache_size = 10000');
         db.run('PRAGMA foreign_keys = ON');
         db.run('PRAGMA synchronous = NORMAL');
-        db.run('PRAGMA temp_store = MEMORY');      // เพิ่ม: ใช้ RAM สำหรับ temp tables
-        db.run('PRAGMA mmap_size = 268435456');    // เพิ่ม: 256MB memory-mapped I/O
+        db.run('PRAGMA temp_store = MEMORY');
+        db.run('PRAGMA mmap_size = 268435456');
 
         db.run(`CREATE TABLE IF NOT EXISTS machines (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -176,8 +175,28 @@ const db = new sqlite3.Database(dbPath, (err) => {
             FOREIGN KEY(machine_id) REFERENCES machines(id)
         )`);
 
+        // ─── NEW: sensor_logs table ──────────────────────────────
+        db.run(`CREATE TABLE IF NOT EXISTS sensor_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            machine_id INTEGER,
+            water_level INTEGER DEFAULT 0,
+            motion_detected INTEGER DEFAULT 0,
+            fault_detected INTEGER DEFAULT 0,
+            coin_value INTEGER DEFAULT 0,
+            relay_states TEXT DEFAULT '[]',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(machine_id) REFERENCES machines(id)
+        )`, (err) => {
+            if (!err) console.log('✅ [DB] sensor_logs table ready');
+        });
+
         // ─── Schema migrations ───────────────────────────────────
         db.run("ALTER TABLE machines ADD COLUMN pending_command TEXT DEFAULT NULL", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
+        db.run("ALTER TABLE machines ADD COLUMN sensor_water_level INTEGER DEFAULT 0", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
+        db.run("ALTER TABLE machines ADD COLUMN sensor_motion INTEGER DEFAULT 0", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
+        db.run("ALTER TABLE machines ADD COLUMN sensor_fault INTEGER DEFAULT 0", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
+        db.run("ALTER TABLE machines ADD COLUMN sensor_coin INTEGER DEFAULT 0", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
+        db.run("ALTER TABLE machines ADD COLUMN sensor_updated_at DATETIME", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
         db.run("ALTER TABLE users ADD COLUMN pending_qr_ref TEXT DEFAULT NULL", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
         db.run("ALTER TABLE users ADD COLUMN pending_qr_amount REAL DEFAULT NULL", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
         db.run("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
@@ -186,7 +205,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
         db.run("ALTER TABLE users ADD COLUMN google_id TEXT", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
         db.run("ALTER TABLE users ADD COLUMN google_picture TEXT", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
 
-        // ─── PERF: เพิ่ม Indexes ที่จำเป็น ────────────────────────
+        // ─── Indexes ─────────────────────────────────────────────
         db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id)", (err) => { if (err) console.log('ℹ️ Migration:', err.message); });
         db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_token ON users(token)", (err) => { if (err) console.log('ℹ️ Index:', err.message); });
         db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_refresh_token ON users(refresh_token)", (err) => { if (err) console.log('ℹ️ Index:', err.message); });
@@ -195,6 +214,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
         db.run("CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id, created_at)", (err) => { if (err) console.log('ℹ️ Index:', err.message); });
         db.run("CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(action_type, created_at)", (err) => { if (err) console.log('ℹ️ Index:', err.message); });
         db.run("CREATE INDEX IF NOT EXISTS idx_users_qr_ref ON users(pending_qr_ref)", (err) => { if (err) console.log('ℹ️ Index:', err.message); });
+        db.run("CREATE INDEX IF NOT EXISTS idx_sensor_logs_machine ON sensor_logs(machine_id, created_at)", (err) => { if (err) console.log('ℹ️ Index:', err.message); });
     });
 });
 
@@ -251,7 +271,6 @@ function validateAmount(amount) {
 }
 
 // ─── MIDDLEWARE: AUTH ────────────────────────────────────────
-// PERF: เลือกเฉพาะ columns ที่ต้องใช้ แทน SELECT *
 function authMiddleware(req, res, next) {
     try {
         const token = req.headers['authorization']?.replace('Bearer ', '');
@@ -817,11 +836,11 @@ app.get('/wallet/history', authMiddleware, (req, res) => {
 });
 
 // ─── MACHINE APIs ─────────────────────────────────────────────
-// PERF: ปรับ query ให้ใช้ LEFT JOIN แทน correlated subquery
 app.get('/machines', (req, res) => {
     const sql = `
         SELECT 
             m.id, m.name, m.status,
+            m.sensor_water_level, m.sensor_motion, m.sensor_fault, m.sensor_coin, m.sensor_updated_at,
             s.id AS session_id, s.start_time, s.reserved_amount,
             u.name AS user_name, u.phone AS user_phone, u.email AS user_email, u.balance AS user_balance
         FROM machines m
@@ -999,7 +1018,6 @@ app.post('/admin/command', (req, res) => {
     res.json({ message: `✅ ส่งคำสั่ง ${command} ไปที่ Bay ${machine_id} เรียบร้อย!` });
 });
 
-// ─── PERF: admin/finance ใช้ Promise.all เพื่อ parallel queries ──
 app.get('/admin/finance', (req, res) => {
     const queries = {
         daily: `
@@ -1191,6 +1209,11 @@ app.post('/api/bay/:id/status', (req, res) => {
     });
 });
 
+// ─── ✅ LOAD ESP8266 ROUTE MODULES ────────────────────────────
+require('./routes/esp8266-relay')(app, db, pushCommandToFirebase);
+require('./routes/esp8266-sensors')(app, db);
+console.log('✅ [Routes] ESP8266 relay & sensor routes loaded');
+
 // ─── SCB QR Payment & Webhook ─────────────────────────────────
 const SCB_BASE = process.env.SCB_SANDBOX === 'true'
     ? 'https://api-sandbox.partners.scb/partners/sandbox'
@@ -1268,7 +1291,6 @@ app.post('/api/qr/create', authMiddleware, async (req, res) => {
     }
 });
 
-// ─── SCB Webhook ────────────────────────────────────────────────
 app.post('/webhook/scb', async (req, res) => {
     console.log('🔔 [SCB Webhook] ได้รับข้อมูล:', JSON.stringify(req.body));
     
