@@ -1,14 +1,13 @@
 /**
  * ╔══════════════════════════════════════════════════════════════╗
  * ║        CAR WASH ESP8266 - FULL API INTEGRATION              ║
- * ║   เชื่อมต่อ Server API ครบทุกปุ่ม (HTTP Polling + Firebase)  ║
+ * ║   เชื่อมต่อ Server API ครบทุก endpoint (HTTP Polling)        ║
  * ╚══════════════════════════════════════════════════════════════╝
  *
  * ─── Libraries Required ────────────────────────────────────────
  *  - ESP8266WiFi         (built-in)
  *  - ESP8266HTTPClient   (built-in)
  *  - ArduinoJson         (Install via Library Manager: v6.x)
- *  - FirebaseESP8266     (Install: Firebase Arduino Client Library)
  *
  * ─── Board Setting ─────────────────────────────────────────────
  *  Board: NodeMCU 1.0 (ESP-12E Module)
@@ -25,6 +24,13 @@
  *  D2 (GPIO4)  → Sensor Motion
  *  D3 (GPIO0)  → Sensor Fault (active HIGH)
  *  A0          → Sensor Coin (ADC)
+ *
+ * ─── API Endpoints ใช้งาน ──────────────────────────────────────
+ *  GET  /api/bay/:id/command          ← ดึงคำสั่ง (Polling)
+ *  POST /api/bay/:id/status           ← รายงาน IDLE/BUSY
+ *  POST /api/bay/:id/sensors/report   ← รายงาน Sensor ทุก 10s
+ *  GET  /api/bay/:id/session          ← ตรวจ session ปัจจุบัน
+ *  GET  /api/pricing                  ← ดูราคาบริการ
  */
 
 #include <ESP8266WiFi.h>
@@ -37,23 +43,24 @@
 // ════════════════════════════════════════════════════════════════
 
 // WiFi
-const char* WIFI_SSID     = "YOUR_WIFI_SSID";       // ← ใส่ชื่อ WiFi
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";   // ← ใส่รหัส WiFi
+const char* WIFI_SSID     = "YOUR_WIFI_SSID";        // ← ใส่ชื่อ WiFi
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";    // ← ใส่รหัส WiFi
 
 // Server API
 const char* SERVER_URL    = "http://192.168.1.100:3000"; // ← IP ของ Server
 const int   BAY_ID        = 1;                           // ← หมายเลข Bay (1-6)
 
 // Polling Intervals (milliseconds)
-const unsigned long POLL_CMD_INTERVAL    = 2000;   // ดึงคำสั่งทุก 2 วินาที
-const unsigned long REPORT_STATUS_INTERVAL = 10000; // รายงานสถานะทุก 10 วินาที
-const unsigned long WIFI_RECONNECT_INTERVAL = 5000; // reconnect WiFi ทุก 5 วินาที
+const unsigned long POLL_CMD_INTERVAL      = 2000;   // ดึงคำสั่งทุก 2 วินาที
+const unsigned long REPORT_STATUS_INTERVAL = 10000;  // รายงานสถานะทุก 10 วินาที
+const unsigned long WIFI_RECONNECT_INTERVAL= 5000;   // reconnect WiFi ทุก 5 วินาที
+const unsigned long SESSION_CHECK_INTERVAL = 30000;  // ตรวจ session ทุก 30 วินาที
 
 // ════════════════════════════════════════════════════════════════
 //   📌  PIN DEFINITIONS
 // ════════════════════════════════════════════════════════════════
 
-// Relay Pins (OUTPUT) — ปรับได้ตามที่ต่อจริง
+// Relay Pins (OUTPUT)
 #define RELAY_WATER   D5  // GPIO14
 #define RELAY_FOAM    D6  // GPIO12
 #define RELAY_AIR     D7  // GPIO13
@@ -78,11 +85,13 @@ struct RelayState {
   bool tyre  = false;
 } relay;
 
-unsigned long lastPollCmd    = 0;
+unsigned long lastPollCmd      = 0;
 unsigned long lastReportStatus = 0;
-unsigned long lastWifiCheck  = 0;
-String        lastCommand    = "";
-bool          isBusy         = false;
+unsigned long lastWifiCheck    = 0;
+unsigned long lastSessionCheck = 0;
+String        lastCommand      = "";
+bool          isBusy           = false;
+bool          hasActiveSession = false;
 
 // ════════════════════════════════════════════════════════════════
 //   🔧  RELAY CONTROL
@@ -111,42 +120,30 @@ void stopAllRelays() {
 void executeCommand(String cmd) {
   cmd.trim();
   if (cmd.length() == 0) return;
-  if (cmd == lastCommand) return; // ป้องกันรัน command เดิมซ้ำ
+  if (cmd == lastCommand) return;
   lastCommand = cmd;
 
   Serial.printf("\n[CMD] ▶ %s\n", cmd.c_str());
 
-  // ── Water ────────────────────────────────────
   if      (cmd == "WATER_ON")  { relaySet(RELAY_WATER, true,  "WATER"); relay.water = true;  isBusy = true; }
   else if (cmd == "WATER_OFF") { relaySet(RELAY_WATER, false, "WATER"); relay.water = false; }
-
-  // ── Foam ─────────────────────────────────────
-  else if (cmd == "FOAM_ON")   { relaySet(RELAY_FOAM, true,  "FOAM"); relay.foam = true;  isBusy = true; }
-  else if (cmd == "FOAM_OFF")  { relaySet(RELAY_FOAM, false, "FOAM"); relay.foam = false; }
-
-  // ── Air ──────────────────────────────────────
-  else if (cmd == "AIR_ON")    { relaySet(RELAY_AIR, true,  "AIR"); relay.air = true;  isBusy = true; }
-  else if (cmd == "AIR_OFF")   { relaySet(RELAY_AIR, false, "AIR"); relay.air = false; }
-
-  // ── Wax ──────────────────────────────────────
-  else if (cmd == "WAX_ON")    { relaySet(RELAY_WAX, true,  "WAX"); relay.wax = true;  isBusy = true; }
-  else if (cmd == "WAX_OFF")   { relaySet(RELAY_WAX, false, "WAX"); relay.wax = false; }
-
-  // ── Tyre ─────────────────────────────────────
-  else if (cmd == "TYRE_ON")   { relaySet(RELAY_TYRE, true,  "TYRE"); relay.tyre = true;  isBusy = true; }
-  else if (cmd == "TYRE_OFF")  { relaySet(RELAY_TYRE, false, "TYRE"); relay.tyre = false; }
-
-  // ── Stop / Emergency ─────────────────────────
+  else if (cmd == "FOAM_ON")   { relaySet(RELAY_FOAM,  true,  "FOAM");  relay.foam  = true;  isBusy = true; }
+  else if (cmd == "FOAM_OFF")  { relaySet(RELAY_FOAM,  false, "FOAM");  relay.foam  = false; }
+  else if (cmd == "AIR_ON")    { relaySet(RELAY_AIR,   true,  "AIR");   relay.air   = true;  isBusy = true; }
+  else if (cmd == "AIR_OFF")   { relaySet(RELAY_AIR,   false, "AIR");   relay.air   = false; }
+  else if (cmd == "WAX_ON")    { relaySet(RELAY_WAX,   true,  "WAX");   relay.wax   = true;  isBusy = true; }
+  else if (cmd == "WAX_OFF")   { relaySet(RELAY_WAX,   false, "WAX");   relay.wax   = false; }
+  else if (cmd == "TYRE_ON")   { relaySet(RELAY_TYRE,  true,  "TYRE");  relay.tyre  = true;  isBusy = true; }
+  else if (cmd == "TYRE_OFF")  { relaySet(RELAY_TYRE,  false, "TYRE");  relay.tyre  = false; }
   else if (cmd == "STOP" || cmd == "EMERGENCY_STOP") {
     stopAllRelays();
+    lastCommand = "";
   }
-
   else {
     Serial.printf("[CMD] ⚠️  Unknown command: %s\n", cmd.c_str());
-    lastCommand = ""; // รีเซ็ตให้รับ command นี้ซ้ำได้ถ้าส่งมาใหม่
+    lastCommand = "";
   }
 
-  // ตรวจว่า relay ทั้งหมดปิดหรือยัง → อัปเดต isBusy
   if (!relay.water && !relay.foam && !relay.air && !relay.wax && !relay.tyre) {
     isBusy = false;
   }
@@ -193,6 +190,7 @@ bool httpPost(String path, String jsonBody) {
 
 // ════════════════════════════════════════════════════════════════
 //   📡  POLL COMMAND FROM SERVER
+//   GET /api/bay/:id/command
 // ════════════════════════════════════════════════════════════════
 
 void pollCommand() {
@@ -217,44 +215,109 @@ void pollCommand() {
 }
 
 // ════════════════════════════════════════════════════════════════
-//   📊  REPORT STATUS TO SERVER
+//   📊  REPORT SENSOR + STATUS TO SERVER
+//   POST /api/bay/:id/sensors/report
+//   POST /api/bay/:id/status
 // ════════════════════════════════════════════════════════════════
 
 void reportStatus() {
   if (millis() - lastReportStatus < REPORT_STATUS_INTERVAL) return;
   lastReportStatus = millis();
 
-  // อ่านค่า Sensor
-  bool waterLevel    = digitalRead(SENSOR_WATER);
+  bool waterLevel     = digitalRead(SENSOR_WATER);
   bool motionDetected = digitalRead(SENSOR_MOTION);
-  bool faultDetected = digitalRead(SENSOR_FAULT);
-  int  coinValue     = analogRead(SENSOR_COIN);
+  bool faultDetected  = digitalRead(SENSOR_FAULT);
+  int  coinValue      = analogRead(SENSOR_COIN);
 
-  // ─── 1) รายงาน Sensor ───────────────────────
+  // ─── 1) POST /api/bay/:id/sensors/report ──────────────
   StaticJsonDocument<512> sensorDoc;
-  sensorDoc["waterLevel"]     = waterLevel;
-  sensorDoc["motionDetected"] = motionDetected;
-  sensorDoc["faultDetected"]  = faultDetected;
-  sensorDoc["coinValue"]      = coinValue;
+  sensorDoc["waterLevel"]      = waterLevel;
+  sensorDoc["motionDetected"]  = motionDetected;
+  sensorDoc["faultDetected"]   = faultDetected;
+  sensorDoc["coinValue"]       = coinValue;
   JsonArray relayArr = sensorDoc.createNestedArray("relayStates");
   relayArr.add(relay.water);
   relayArr.add(relay.foam);
   relayArr.add(relay.air);
   relayArr.add(relay.wax);
   relayArr.add(relay.tyre);
+
   String sensorJson;
   serializeJson(sensorDoc, sensorJson);
-  httpPost("/api/bay/" + String(BAY_ID) + "/sensors/report", sensorJson);
 
-  // ─── 2) รายงาน Bay Status ────────────────────
+  String sensorPath = "/api/bay/" + String(BAY_ID) + "/sensors/report";
+  String sensorResp = "";
+  // เรียก POST และอ่าน response เพื่อเช็ก fault_detected จาก server
+  if (WiFi.status() == WL_CONNECTED) {
+    WiFiClient client;
+    HTTPClient http;
+    http.begin(client, String(SERVER_URL) + sensorPath);
+    http.addHeader("Content-Type", "application/json");
+    http.setTimeout(5000);
+    int code = http.POST(sensorJson);
+    if (code == 200) {
+      sensorResp = http.getString();
+    }
+    http.end();
+
+    // ถ้า server ตอบว่า fault → หยุด relay ทันที
+    if (sensorResp.indexOf("fault_detected") > 0) {
+      Serial.println("[SERVER] ⚠️ Server confirmed fault → STOP all relays");
+      stopAllRelays();
+      lastCommand = "";
+    }
+  }
+
+  // ─── 2) POST /api/bay/:id/status ──────────────────────
   StaticJsonDocument<64> statusDoc;
   statusDoc["status"] = isBusy ? "BUSY" : "IDLE";
   String statusJson;
   serializeJson(statusDoc, statusJson);
   httpPost("/api/bay/" + String(BAY_ID) + "/status", statusJson);
 
-  Serial.printf("[STATUS] Bay%d: %s | Water:%d Coin:%d Fault:%d\n",
-    BAY_ID, isBusy ? "BUSY" : "IDLE", waterLevel, coinValue, faultDetected);
+  Serial.printf("[STATUS] Bay%d: %s | Water:%d Motion:%d Coin:%d Fault:%d\n",
+    BAY_ID, isBusy ? "BUSY" : "IDLE", waterLevel, motionDetected, coinValue, faultDetected);
+}
+
+// ════════════════════════════════════════════════════════════════
+//   👤  CHECK ACTIVE SESSION
+//   GET /api/bay/:id/session
+// ════════════════════════════════════════════════════════════════
+
+void checkSession() {
+  if (millis() - lastSessionCheck < SESSION_CHECK_INTERVAL) return;
+  lastSessionCheck = millis();
+
+  String path = "/api/bay/" + String(BAY_ID) + "/session";
+  String body = httpGet(path);
+  if (body.length() == 0) return;
+
+  StaticJsonDocument<512> doc;
+  DeserializationError err = deserializeJson(doc, body);
+  if (err) return;
+
+  bool prevSession = hasActiveSession;
+  hasActiveSession = !doc["session"].isNull();
+
+  if (hasActiveSession) {
+    const char* userName    = doc["session"]["user_name"] | "Unknown";
+    int         userBalance = doc["session"]["user_balance"] | 0;
+    Serial.printf("[SESSION] Active: %s (Balance: %d)\n", userName, userBalance);
+
+    // ถ้ายอดเงินหมด → ส่ง STOP
+    if (userBalance <= 0 && isBusy) {
+      Serial.println("[SESSION] ⚠️ Balance empty → STOP");
+      stopAllRelays();
+      lastCommand = "";
+    }
+  } else {
+    if (prevSession && isBusy) {
+      Serial.println("[SESSION] Session ended → STOP all relays");
+      stopAllRelays();
+      lastCommand = "";
+    }
+    Serial.printf("[SESSION] Bay %d: No active session\n", BAY_ID);
+  }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -284,14 +347,14 @@ void ensureWifi() {
 }
 
 // ════════════════════════════════════════════════════════════════
-//   ⚠️  FAULT HANDLER
+//   ⚠️  LOCAL FAULT HANDLER
 // ════════════════════════════════════════════════════════════════
 
 void checkFaultSensor() {
   if (digitalRead(SENSOR_FAULT) == HIGH) {
-    Serial.println("\n[FAULT] ⚠️  Fault detected! Stopping all relays!");
+    Serial.println("\n[FAULT] ⚠️  Local fault detected! Stopping all relays!");
     stopAllRelays();
-    lastCommand = ""; // อนุญาตให้รับ command ใหม่หลัง fault
+    lastCommand = "";
     delay(3000);
   }
 }
@@ -340,6 +403,12 @@ void setup() {
   Serial.printf("[INIT] Server: %s\n", SERVER_URL);
   Serial.printf("[INIT] Bay ID: %d\n", BAY_ID);
   Serial.println("[INIT] ✅ Board ready!\n");
+  Serial.println("[INIT] API Endpoints:");
+  Serial.printf("  GET  %s/api/bay/%d/command\n",        SERVER_URL, BAY_ID);
+  Serial.printf("  POST %s/api/bay/%d/status\n",         SERVER_URL, BAY_ID);
+  Serial.printf("  POST %s/api/bay/%d/sensors/report\n", SERVER_URL, BAY_ID);
+  Serial.printf("  GET  %s/api/bay/%d/session\n",        SERVER_URL, BAY_ID);
+  Serial.printf("  GET  %s/api/pricing\n",               SERVER_URL);
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -347,10 +416,11 @@ void setup() {
 // ════════════════════════════════════════════════════════════════
 
 void loop() {
-  ensureWifi();       // ตรวจ WiFi / reconnect
-  pollCommand();      // ดึง command จาก Server
-  reportStatus();     // รายงาน sensor + status
-  checkFaultSensor(); // ตรวจ fault
+  ensureWifi();        // ตรวจ WiFi / reconnect
+  pollCommand();       // ดึง command จาก Server  (ทุก 2s)
+  reportStatus();      // รายงาน sensor + status   (ทุก 10s)
+  checkSession();      // ตรวจ session / ยอดเงิน   (ทุก 30s)
+  checkFaultSensor();  // ตรวจ fault local
 
   yield(); // ให้ ESP8266 watchdog
 }
