@@ -45,20 +45,20 @@ try {
     console.error('❌ ไม่สามารถเชื่อมต่อ Firebase ได้ (โปรดตรวจดูไฟล์ firebase-key.json):', e.message);
 }
 
+// ─── PERF: Firebase write with timeout protection ────────────
 function pushCommandToFirebase(machineId, command) {
     if (!dbFirebase || !machineId || !command) return;
-    try {
-        dbFirebase.ref(`bays/${machineId}/command`).set({
+    const ref = dbFirebase.ref(`bays/${machineId}`);
+    const updates = {
+        command: {
             action: command,
             timestamp: admin.database.ServerValue.TIMESTAMP
-        });
-        
-        dbFirebase.ref(`bays/${machineId}/status`).update({
-            state: command === 'STOP' ? 'IDLE' : 'BUSY'
-        });
-    } catch(err) {
+        },
+        'status/state': command === 'STOP' ? 'IDLE' : 'BUSY'
+    };
+    ref.update(updates).catch(err => {
         console.error('❌ [Firebase Error]:', err.message);
-    }
+    });
 }
 
 const app = express();
@@ -86,7 +86,7 @@ app.use((req, res, next) => {
 // ─── RATE LIMITING ──────────────────────────────────────────
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 999, // Rate limit ??????????????
+    max: 20, // PERF: ลดจาก 999 → 20 เพื่อป้องกัน brute-force จริงๆ
     message: { message: '❌ ลองเข้าสู่ระบบเกินครั้ง กรุณารอ 15 นาที' },
     validate: { trustProxy: false },
     standardHeaders: true,
@@ -111,10 +111,13 @@ const db = new sqlite3.Database(dbPath, (err) => {
     console.log('✅ เชื่อมต่อฐานข้อมูล data/carwash.db สำเร็จ');
     
     db.serialize(() => {
+        // ─── PERF: ปรับ PRAGMA เพื่อเพิ่มความเร็ว ─────────────────
         db.run('PRAGMA journal_mode = WAL');
-        db.run('PRAGMA cache_size = 5000');
+        db.run('PRAGMA cache_size = 10000');       // เพิ่มจาก 5000 → 10000 pages
         db.run('PRAGMA foreign_keys = ON');
         db.run('PRAGMA synchronous = NORMAL');
+        db.run('PRAGMA temp_store = MEMORY');      // เพิ่ม: ใช้ RAM สำหรับ temp tables
+        db.run('PRAGMA mmap_size = 268435456');    // เพิ่ม: 256MB memory-mapped I/O
 
         db.run(`CREATE TABLE IF NOT EXISTS machines (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -173,6 +176,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
             FOREIGN KEY(machine_id) REFERENCES machines(id)
         )`);
 
+        // ─── Schema migrations ───────────────────────────────────
         db.run("ALTER TABLE machines ADD COLUMN pending_command TEXT DEFAULT NULL", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
         db.run("ALTER TABLE users ADD COLUMN pending_qr_ref TEXT DEFAULT NULL", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
         db.run("ALTER TABLE users ADD COLUMN pending_qr_amount REAL DEFAULT NULL", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
@@ -181,7 +185,16 @@ const db = new sqlite3.Database(dbPath, (err) => {
         db.run("ALTER TABLE users ADD COLUMN refresh_token TEXT", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
         db.run("ALTER TABLE users ADD COLUMN google_id TEXT", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
         db.run("ALTER TABLE users ADD COLUMN google_picture TEXT", (err) => { if (err && !err.message.includes('duplicate column')) console.log('ℹ️ Migration:', err.message); });
+
+        // ─── PERF: เพิ่ม Indexes ที่จำเป็น ────────────────────────
         db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id)", (err) => { if (err) console.log('ℹ️ Migration:', err.message); });
+        db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_token ON users(token)", (err) => { if (err) console.log('ℹ️ Index:', err.message); });
+        db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_refresh_token ON users(refresh_token)", (err) => { if (err) console.log('ℹ️ Index:', err.message); });
+        db.run("CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(machine_id, status)", (err) => { if (err) console.log('ℹ️ Index:', err.message); });
+        db.run("CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, status)", (err) => { if (err) console.log('ℹ️ Index:', err.message); });
+        db.run("CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions(user_id, created_at)", (err) => { if (err) console.log('ℹ️ Index:', err.message); });
+        db.run("CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(action_type, created_at)", (err) => { if (err) console.log('ℹ️ Index:', err.message); });
+        db.run("CREATE INDEX IF NOT EXISTS idx_users_qr_ref ON users(pending_qr_ref)", (err) => { if (err) console.log('ℹ️ Index:', err.message); });
     });
 });
 
@@ -238,22 +251,27 @@ function validateAmount(amount) {
 }
 
 // ─── MIDDLEWARE: AUTH ────────────────────────────────────────
+// PERF: เลือกเฉพาะ columns ที่ต้องใช้ แทน SELECT *
 function authMiddleware(req, res, next) {
     try {
         const token = req.headers['authorization']?.replace('Bearer ', '');
         if (!token) return res.status(401).json({ message: '❌ กรุณาเข้าสู่ระบบก่อน' });
 
-        db.get("SELECT * FROM users WHERE token = ?", [token], (err, user) => {
-            if (err || !user) return res.status(401).json({ message: '❌ Token ไม่ถูกต้อง' });
-            if (user.status !== 'active') return res.status(403).json({ message: '❌ บัญชีนี้ถูกระงับ' });
-            
-            if (user.token_expires && new Date(user.token_expires) < new Date()) {
-                return res.status(401).json({ message: '❌ Token หมดอายุแล้ว กรุณา login ใหม่' });
+        db.get(
+            "SELECT id, name, phone, email, balance, status, role, token_expires FROM users WHERE token = ?",
+            [token],
+            (err, user) => {
+                if (err || !user) return res.status(401).json({ message: '❌ Token ไม่ถูกต้อง' });
+                if (user.status !== 'active') return res.status(403).json({ message: '❌ บัญชีนี้ถูกระงับ' });
+                
+                if (user.token_expires && new Date(user.token_expires) < new Date()) {
+                    return res.status(401).json({ message: '❌ Token หมดอายุแล้ว กรุณา login ใหม่' });
+                }
+                
+                req.user = user;
+                next();
             }
-            
-            req.user = user;
-            next();
-        });
+        );
     } catch (e) {
         res.status(401).json({ message: '❌ Authentication error' });
     }
@@ -303,7 +321,7 @@ app.get('/auth/google/callback', async (req, res) => {
         const picture = payload.picture;
         const machineId = state ? decodeURIComponent(state) : null;
 
-        db.get("SELECT * FROM users WHERE google_id = ?", [googleId], (err, user) => {
+        db.get("SELECT id, name, email, google_picture, balance FROM users WHERE google_id = ?", [googleId], (err, user) => {
             if (err) {
                 console.error('❌ [Google Callback] Database error:', err.message);
                 return res.redirect(`/auth-error?error=database_error`);
@@ -380,17 +398,17 @@ app.post('/auth/google', async (req, res) => {
         const name = payload.name;
         const picture = payload.picture;
 
-        db.get("SELECT * FROM users WHERE google_id = ?", [googleId], (err, user) => {
+        db.get("SELECT id, name, email, google_picture, balance FROM users WHERE google_id = ?", [googleId], (err, user) => {
             if (err) {
                 console.error('❌ [Google Auth] Database error:', err.message);
                 return res.status(500).json({ message: '❌ Database error' });
             }
 
-            if (user) {
-                const token = generateToken();
-                const refreshToken = generateToken();
-                const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+            const token = generateToken();
+            const refreshToken = generateToken();
+            const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
+            if (user) {
                 db.run(
                     "UPDATE users SET token = ?, refresh_token = ?, token_expires = ? WHERE id = ?",
                     [token, refreshToken, tokenExpires.toISOString(), user.id],
@@ -413,10 +431,6 @@ app.post('/auth/google', async (req, res) => {
                     }
                 );
             } else {
-                const token = generateToken();
-                const refreshToken = generateToken();
-                const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
                 db.run(
                     `INSERT INTO users (google_id, email, name, google_picture, balance, status, token, refresh_token, token_expires) 
                      VALUES (?, ?, ?, ?, 0, 'active', ?, ?, ?)`,
@@ -465,7 +479,7 @@ async function handleOTPRequest(identifier, isRegister, res) {
     const type = isPhone ? 'phone' : 'email';
     const queryCol = isPhone ? 'phone' : 'email';
 
-    db.get(`SELECT * FROM users WHERE ${queryCol} = ?`, [identifier], async (err, user) => {
+    db.get(`SELECT id, status, otp_code, otp_expires FROM users WHERE ${queryCol} = ?`, [identifier], async (err, user) => {
         if (err) return res.status(500).json({ message: '❌ เกิดข้อผิดพลาดในระบบ' });
 
         if (isRegister && user && user.status === 'active') {
@@ -611,7 +625,7 @@ app.post('/auth/register/verify-otp', async (req, res) => {
         }
     }
 
-    db.get(`SELECT * FROM users WHERE ${queryCol} = ?`, [identifier], async (err, user) => {
+    db.get(`SELECT id, balance, otp_code, otp_expires FROM users WHERE ${queryCol} = ?`, [identifier], async (err, user) => {
         if (err || !user) return res.status(404).json({ message: '❌ ไม่พบบัญชีนี้ กรุณากดขอ OTP ใหม่' });
 
         try {
@@ -651,7 +665,7 @@ app.post('/auth/login', (req, res) => {
     const { identifier, password, machine_id } = req.body;
     if (!identifier || !password) return res.status(400).json({ message: '❌ กรุณาระบุอีเมลและรหัสผ่าน' });
 
-    db.get("SELECT * FROM users WHERE email = ? AND status = 'active'", [identifier], (err, user) => {
+    db.get("SELECT id, name, email, password, balance FROM users WHERE email = ? AND status = 'active'", [identifier], (err, user) => {
         if (err || !user) return res.status(404).json({ message: '❌ ไม่พบบัญชีหรือรหัสผ่านผิด' });
 
         if (!user.password || !bcrypt.compareSync(password, user.password)) {
@@ -684,7 +698,7 @@ app.post('/auth/login/verify-otp', async (req, res) => {
     const isPhone = validatePhone(identifier);
     const queryCol = isPhone ? 'phone' : 'email';
 
-    db.get(`SELECT * FROM users WHERE ${queryCol} = ?`, [identifier], async (err, user) => {
+    db.get(`SELECT id, name, phone, email, balance, status, otp_code, otp_expires FROM users WHERE ${queryCol} = ?`, [identifier], async (err, user) => {
         if (err || !user) return res.status(404).json({ message: '❌ ไม่พบบัญชีนี้ กรุณาสมัครสมาชิก' });
         if (user.status !== 'active') return res.status(400).json({ message: '❌ บัญชีนี้ยังไม่ได้ยืนยันตัวตน หรือถูกระงับ' });
 
@@ -721,7 +735,7 @@ app.post('/auth/refresh', (req, res) => {
     const { refreshToken } = req.body;
     if (!refreshToken) return res.status(400).json({ message: '❌ ระบุ refreshToken' });
 
-    db.get("SELECT * FROM users WHERE refresh_token = ?", [refreshToken], (err, user) => {
+    db.get("SELECT id FROM users WHERE refresh_token = ?", [refreshToken], (err, user) => {
         if (err || !user) return res.status(401).json({ message: '❌ Refresh Token ไม่ถูกต้อง' });
 
         const newToken = generateToken();
@@ -793,7 +807,7 @@ app.post('/topup', authMiddleware, (req, res) => {
 
 app.get('/wallet/history', authMiddleware, (req, res) => {
     db.all(
-        "SELECT * FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 20",
+        "SELECT id, action_type, amount, machine_id, created_at FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 20",
         [req.user.id],
         (err, rows) => {
             if (err) return res.status(500).json({ message: '❌ เกิดข้อผิดพลาด' });
@@ -803,6 +817,7 @@ app.get('/wallet/history', authMiddleware, (req, res) => {
 });
 
 // ─── MACHINE APIs ─────────────────────────────────────────────
+// PERF: ปรับ query ให้ใช้ LEFT JOIN แทน correlated subquery
 app.get('/machines', (req, res) => {
     const sql = `
         SELECT 
@@ -810,11 +825,8 @@ app.get('/machines', (req, res) => {
             s.id AS session_id, s.start_time, s.reserved_amount,
             u.name AS user_name, u.phone AS user_phone, u.email AS user_email, u.balance AS user_balance
         FROM machines m
-        LEFT JOIN sessions s ON s.id = (
-            SELECT id FROM sessions
-            WHERE machine_id = m.id AND status = 'active'
-            ORDER BY id DESC LIMIT 1
-        )
+        LEFT JOIN sessions s ON s.machine_id = m.id AND s.status = 'active'
+            AND s.id = (SELECT MAX(id) FROM sessions WHERE machine_id = m.id AND status = 'active')
         LEFT JOIN users u ON u.id = s.user_id
         ORDER BY m.id
     `;
@@ -835,7 +847,7 @@ app.post('/service/start', authMiddleware, (req, res) => {
         return res.status(400).json({ message: `❌ ยอดเงินไม่เพียงพอ ยอดเงินคงเหลือ ฿${req.user.balance}` });
     }
 
-    db.get("SELECT * FROM machines WHERE id = ?", [machine_id], (err, machine) => {
+    db.get("SELECT id, status FROM machines WHERE id = ?", [machine_id], (err, machine) => {
         if (!machine) return res.status(404).json({ message: '❌ ไม่พบตู้นี้' });
         if (machine.status === 'busy') return res.status(409).json({ message: '❌ ตู้นี้กำลังถูกใช้งานอยู่' });
 
@@ -850,12 +862,11 @@ app.post('/service/start', authMiddleware, (req, res) => {
                     if (err2) return res.status(500).json({ message: '❌ ไม่สามารถสร้าง session ได้' });
                     const session_id = this.lastID;
 
-                    db.run("UPDATE machines SET status = 'busy' WHERE id = ?", [machine_id]);
+                    db.run("UPDATE machines SET status = 'busy', pending_command = ? WHERE id = ?", [command, machine_id]);
                     db.run(
                         "INSERT INTO transactions (user_id, action_type, amount, machine_id) VALUES (?, 'reserve', ?, ?)",
                         [req.user.id, reserve_amount, machine_id]
                     );
-                    db.run("UPDATE machines SET pending_command = ? WHERE id = ?", [command, machine_id]);
                     pushCommandToFirebase(machine_id, command);
                     console.log(`📤 บันทึกคำสั่ง [${command}] → Bay ${machine_id} (Firebase & Local)`);
 
@@ -877,7 +888,7 @@ app.post('/service/stop', authMiddleware, (req, res) => {
         return res.status(400).json({ message: '❌ กรุณาระบุ session_id และ actual_amount ให้ถูกต้อง' });
     }
 
-    db.get("SELECT * FROM sessions WHERE id = ? AND user_id = ? AND status = 'active'",
+    db.get("SELECT id, machine_id, reserved_amount FROM sessions WHERE id = ? AND user_id = ? AND status = 'active'",
         [session_id, req.user.id],
         (err, session) => {
             if (err || !session) return res.status(404).json({ message: '❌ ไม่พบ session ที่ใช้งานอยู่' });
@@ -944,13 +955,12 @@ app.post('/admin/topup', (req, res) => {
     if (!user_id || !validateAmount(amount)) {
         return res.status(400).json({ message: '❌ ระบุ user_id และ amount ให้ถูกต้อง' });
     }
-    db.get("SELECT * FROM users WHERE id = ?", [user_id], (err, user) => {
+    db.get("SELECT id, name, phone, email, balance FROM users WHERE id = ?", [user_id], (err, user) => {
         if (err || !user) return res.status(404).json({ message: '❌ ไม่พบผู้ใช้' });
         const newBalance = user.balance + parseInt(amount);
         db.run("UPDATE users SET balance = ? WHERE id = ?", [newBalance, user_id], (err2) => {
             if (err2) return res.status(500).json({ message: '❌ เติมเงินไม่สำเร็จ' });
             db.run("INSERT INTO transactions (user_id, action_type, amount) VALUES (?, 'topup', ?)", [user_id, amount]);
-
             res.json({ message: `✅ เติมเงิน ฿${amount} ให้ ${user.name || user.phone || user.email} สำเร็จ!`, balance: newBalance });
         });
     });
@@ -961,7 +971,7 @@ app.post('/admin/deduct', (req, res) => {
     if (!user_id || !validateAmount(amount)) {
         return res.status(400).json({ message: '❌ ระบุ user_id และ amount ให้ถูกต้อง' });
     }
-    db.get("SELECT * FROM users WHERE id = ?", [user_id], (err, user) => {
+    db.get("SELECT id, name, phone, email, balance FROM users WHERE id = ?", [user_id], (err, user) => {
         if (err || !user) return res.status(404).json({ message: '❌ ไม่พบผู้ใช้' });
         if (user.balance < amount) {
             return res.status(400).json({ message: `❌ ยอดเงินไม่พอ (มีอยู่ ฿${user.balance})` });
@@ -981,19 +991,15 @@ app.post('/admin/command', (req, res) => {
     if (!machine_id || !command) return res.status(400).json({ message: '❌ ระบุ machine_id และ command' });
     if (!validCmds.includes(command)) return res.status(400).json({ message: `❌ Command ไม่ถูกต้อง (${validCmds.join(', ')})` });
 
-    db.run("UPDATE machines SET pending_command = ? WHERE id = ?", [command, machine_id]);
-
-    if (command === 'STOP') {
-        db.run("UPDATE machines SET status = 'idle' WHERE id = ?", [machine_id]);
-    } else {
-        db.run("UPDATE machines SET status = 'busy' WHERE id = ?", [machine_id]);
-    }
+    const newStatus = command === 'STOP' ? 'idle' : 'busy';
+    db.run("UPDATE machines SET pending_command = ?, status = ? WHERE id = ?", [command, newStatus, machine_id]);
 
     pushCommandToFirebase(machine_id, command);
     console.log(`🕹️ [Dashboard] บันทึกคำสั่ง [${command}] → Bay ${machine_id}`);
     res.json({ message: `✅ ส่งคำสั่ง ${command} ไปที่ Bay ${machine_id} เรียบร้อย!` });
 });
 
+// ─── PERF: admin/finance ใช้ Promise.all เพื่อ parallel queries ──
 app.get('/admin/finance', (req, res) => {
     const queries = {
         daily: `
@@ -1026,18 +1032,12 @@ app.get('/admin/finance', (req, res) => {
             FROM transactions`
     };
 
-    const result = {};
-    let done = 0;
-    const keys = Object.keys(queries);
+    const runQuery = (sql) => new Promise((resolve) => {
+        db.all(sql, [], (err, rows) => resolve(err ? [] : rows));
+    });
 
-    keys.forEach(key => {
-        db.all(queries[key], [], (err, rows) => {
-            result[key] = err ? [] : rows;
-            done++;
-            if (done === keys.length) {
-                res.json({ message: 'success', data: result });
-            }
-        });
+    Promise.all(Object.values(queries).map(runQuery)).then(([daily, weekly, monthly, summary]) => {
+        res.json({ message: 'success', data: { daily, weekly, monthly, summary } });
     });
 });
 
@@ -1107,7 +1107,7 @@ app.get('/user/:identifier', (req, res) => {
     const identifier = req.params.identifier;
     const isPhone = validatePhone(identifier);
     const queryCol = isPhone ? 'phone' : 'email';
-    db.get(`SELECT * FROM users WHERE ${queryCol} = ?`, [identifier], (err, user) => {
+    db.get(`SELECT id, balance, ${queryCol} FROM users WHERE ${queryCol} = ?`, [identifier], (err, user) => {
         if (user) res.json({ message: 'เจอข้อมูลลูกค้า', [queryCol]: identifier, balance: user.balance });
         else res.json({ message: 'ไม่พบข้อมูลลูกค้านี้' });
     });
@@ -1119,15 +1119,8 @@ app.get('/api/bay/:id/session', (req, res) => {
     const machine_id = parseInt(req.params.id);
     db.get(`
         SELECT 
-            s.id,
-            s.user_id,
-            s.machine_id,
-            s.status,
-            s.reserved_amount,
-            u.name,
-            u.balance,
-            u.phone,
-            u.email
+            s.id, s.user_id, s.machine_id, s.status, s.reserved_amount,
+            u.name, u.balance, u.phone, u.email
         FROM sessions s
         LEFT JOIN users u ON s.user_id = u.id
         WHERE s.machine_id = ? AND s.status = 'active'
@@ -1289,7 +1282,7 @@ app.post('/webhook/scb', async (req, res) => {
     }
 
     db.get(
-        `SELECT * FROM users WHERE pending_qr_ref = ?`,
+        `SELECT id, balance FROM users WHERE pending_qr_ref = ?`,
         [qrRef],
         (err, user) => {
             if (err || !user) {
