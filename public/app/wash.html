@@ -2,8 +2,8 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Smart Car Wash — ข้อมูลบริการ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Green Energy Car Wash — ข้อมูลบริการ</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -11,6 +11,12 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
         }
 
         body {
@@ -24,6 +30,7 @@
         .container {
             max-width: 1200px;
             margin: 0 auto;
+            width: 100%;
         }
 
         /* Header */
@@ -31,22 +38,23 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 2.5rem;
-            padding: 1.5rem;
+            margin-bottom: 2rem;
+            padding: 1.25rem;
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            gap: 1rem;
+            flex-wrap: wrap;
         }
 
         .header-left h1 {
-            font-size: 2rem;
+            font-size: 1.75rem;
             font-weight: 800;
-            margin-bottom: 0.3rem;
+            margin-bottom: 0.25rem;
         }
 
         .header-left p {
-            font-size: 0.95rem;
+            font-size: 0.85rem;
             color: #b0b0b0;
         }
 
@@ -55,72 +63,72 @@
         }
 
         .user-name {
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             font-weight: 700;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.4rem;
         }
 
         .balance-display {
-            font-size: 2.2rem;
+            font-size: 1.9rem;
             font-weight: 800;
             color: #4ade80;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.4rem;
         }
 
         .balance-label {
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             color: #888;
         }
 
         /* Info Cards */
         .info-section {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .info-card {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 2rem;
+            border-radius: 14px;
+            padding: 1.5rem;
             text-align: center;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
         }
 
         .info-card-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
+            font-size: 2.5rem;
             display: inline-block;
         }
 
         .info-card-label {
-            font-size: 0.9rem;
+            font-size: 0.75rem;
             color: #888;
-            margin-bottom: 0.5rem;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.8px;
         }
 
         .info-card-value {
-            font-size: 2rem;
+            font-size: 1.75rem;
             font-weight: 800;
             color: #fff;
-            margin-bottom: 0.5rem;
         }
 
         .info-card-status {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
+            gap: 0.4rem;
         }
 
         .status-dot {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
             animation: pulse 2s infinite;
         }
@@ -146,102 +154,198 @@
             50% { opacity: 0.5; }
         }
 
-        /* Message */
-        .message-box {
-            background: rgba(74, 222, 128, 0.1);
-            border: 1px solid rgba(74, 222, 128, 0.3);
-            border-radius: 16px;
-            padding: 2rem;
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .message-box.busy {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-
-        .message-box h2 {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-            color: #4ade80;
-        }
-
-        .message-box.busy h2 {
-            color: #ef4444;
-        }
-
-        .message-box p {
-            font-size: 1rem;
-            color: #b0b0b0;
-            line-height: 1.6;
-        }
-
         /* Buttons */
         .button-group {
             display: flex;
-            gap: 1rem;
+            gap: 0.75rem;
             justify-content: center;
             flex-wrap: wrap;
         }
 
         .btn {
-            padding: 0.8rem 1.5rem;
+            padding: 0.7rem 1.25rem;
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             font-family: 'Outfit', sans-serif;
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.4rem;
+            min-width: 140px;
+            justify-content: center;
         }
 
         .btn-primary {
             background: linear-gradient(135deg, #4ade80, #22c55e);
             color: white;
-            box-shadow: 0 4px 16px rgba(74, 222, 128, 0.3);
+            box-shadow: 0 4px 12px rgba(74, 222, 128, 0.3);
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 24px rgba(74, 222, 128, 0.4);
+            box-shadow: 0 6px 16px rgba(74, 222, 128, 0.4);
         }
 
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.08);
-            color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.12);
-        }
-
-        /* Responsive */
+        /* Responsive - Tablet */
         @media (max-width: 768px) {
+            body {
+                padding: 0.75rem;
+            }
+
             .header {
                 flex-direction: column;
                 text-align: center;
-                gap: 1rem;
+                padding: 1rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .header-left h1 {
+                font-size: 1.5rem;
+            }
+
+            .header-left p {
+                font-size: 0.8rem;
             }
 
             .header-right {
+                width: 100%;
+            }
+
+            .balance-display {
+                font-size: 1.6rem;
+            }
+
+            .info-section {
+                grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+                gap: 0.8rem;
+                margin-bottom: 1.2rem;
+            }
+
+            .info-card {
+                padding: 1.2rem 1rem;
+                border-radius: 12px;
+                gap: 0.4rem;
+            }
+
+            .info-card-icon {
+                font-size: 2.2rem;
+            }
+
+            .info-card-label {
+                font-size: 0.7rem;
+            }
+
+            .info-card-value {
+                font-size: 1.5rem;
+            }
+
+            .button-group {
+                gap: 0.5rem;
+            }
+
+            .btn {
+                padding: 0.65rem 1rem;
+                font-size: 0.9rem;
+                min-width: 120px;
+                border-radius: 9px;
+            }
+        }
+
+        /* Responsive - Mobile */
+        @media (max-width: 480px) {
+            body {
+                padding: 0.5rem;
+            }
+
+            .container {
+                width: 100%;
+            }
+
+            .header {
+                flex-direction: column;
                 text-align: center;
+                padding: 0.9rem;
+                margin-bottom: 1rem;
+                border-radius: 12px;
+            }
+
+            .header-left h1 {
+                font-size: 1.3rem;
+            }
+
+            .header-left p {
+                font-size: 0.75rem;
+            }
+
+            .balance-display {
+                font-size: 1.4rem;
+                margin-bottom: 0.3rem;
+            }
+
+            .balance-label {
+                font-size: 0.7rem;
             }
 
             .info-section {
                 grid-template-columns: 1fr;
+                gap: 0.6rem;
+                margin-bottom: 1rem;
             }
 
-            .balance-display {
-                font-size: 1.8rem;
+            .info-card {
+                padding: 1rem 0.9rem;
+                border-radius: 10px;
+                gap: 0.3rem;
             }
 
-            h1 {
-                font-size: 1.5rem;
+            .info-card-icon {
+                font-size: 2rem;
+            }
+
+            .info-card-label {
+                font-size: 0.65rem;
+                letter-spacing: 0.6px;
+            }
+
+            .info-card-value {
+                font-size: 1.3rem;
+            }
+
+            .info-card-status {
+                font-size: 0.75rem;
+                gap: 0.3rem;
+            }
+
+            .status-dot {
+                width: 5px;
+                height: 5px;
+            }
+
+            .button-group {
+                gap: 0.4rem;
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                padding: 0.6rem 1rem;
+                font-size: 0.85rem;
+                border-radius: 8px;
+                min-width: unset;
+            }
+
+            .btn i {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Portrait orientation optimization */
+        @media (orientation: portrait) and (max-height: 667px) {
+            .info-section {
+                margin-bottom: 0.8rem;
             }
         }
     </style>
@@ -251,13 +355,13 @@
         <!-- Header -->
         <div class="header">
             <div class="header-left">
-                <h1>🚗 Smart Car Wash</h1>
+                <h1>🚗 Green Energy Car Wash</h1>
                 <p>ระบบล้างรถอัตโนมัติ</p>
             </div>
             <div class="header-right">
                 <div class="user-name" id="userName">—</div>
                 <div class="balance-display">
-                    <span style="font-size: 1.4rem; color: #888;">฿</span><span id="userBalance">0</span>
+                    <span style="font-size: 1.2rem; color: #888;">฿</span><span id="userBalance">0</span>
                 </div>
                 <div class="balance-label">ยอดเงินคงเหลือ</div>
             </div>
@@ -279,7 +383,7 @@
             <!-- Status Info -->
             <div class="info-card">
                 <div class="info-card-icon">✨</div>
-                <div class="info-card-label">สถานะ</div>
+                <div class="info-card-label">สถานะของคุณ</div>
                 <div class="info-card-value" id="userStatus">—</div>
                 <div class="info-card-status idle" id="statusBox">
                     <div class="status-dot idle"></div>
@@ -299,20 +403,10 @@
             </div>
         </div>
 
-        <!-- Message -->
-        <div class="message-box" id="messageBox">
-            <h2 id="messageTitle">✅ พร้อมใช้งาน</h2>
-            <p id="messageText">ขณะนี้ช่องบริการของคุณพร้อมใช้งาน<br>
-            กรุณาขึ้นไปที่หน้าตู้เพื่อเริ่มบริการ</p>
-        </div>
-
         <!-- Buttons -->
         <div class="button-group">
             <button class="btn btn-primary" onclick="logout()">
                 <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
-            </button>
-            <button class="btn btn-secondary" onclick="goBack()">
-                <i class="fa-solid fa-arrow-left"></i> กลับไป
             </button>
         </div>
     </div>
@@ -322,11 +416,18 @@
         const params = new URLSearchParams(window.location.search);
         const bayId = params.get('bay') || '1';
         const token = params.get('token') || localStorage.getItem('cw_token');
+        let currentUserId = null;
         
-        // Track login time
-        const loginTime = Date.now();
+        // Track login time - keep persistent across refreshes
+        let loginTime;
+        if (localStorage.getItem('cw_login_time')) {
+            loginTime = parseInt(localStorage.getItem('cw_login_time'));
+        } else {
+            loginTime = Date.now();
+            localStorage.setItem('cw_login_time', loginTime);
+        }
 
-        // Load user data and bay status
+        // Load user data
         async function loadUser() {
             if (!token) {
                 window.location.href = '/app';
@@ -340,12 +441,13 @@
                 const data = await res.json();
 
                 if (res.ok) {
+                    currentUserId = data.user.id;
                     document.getElementById('userName').textContent = data.user.name || 'User';
                     document.getElementById('userBalance').textContent = (data.user.balance || 0).toLocaleString();
                     document.getElementById('bayNumber').textContent = `Bay ${bayId}`;
                     
-                    // Fetch bay status
-                    fetchBayStatus();
+                    // Fetch user's actual status from server
+                    fetchUserUsageStatus();
                 } else {
                     window.location.href = '/app';
                 }
@@ -355,49 +457,39 @@
             }
         }
 
-        // Fetch bay status from server
-        async function fetchBayStatus() {
+        // Fetch user's actual usage status from database
+        async function fetchUserUsageStatus() {
             try {
                 const res = await fetch(`/machines`);
                 const data = await res.json();
                 
                 if (data.data) {
-                    const bay = data.data.find(m => m.id == bayId);
-                    if (bay) {
-                        updateStatusDisplay(bay.status);
-                    }
+                    // ตรวจหา active session ของ user ปัจจุบัน
+                    const userHasActiveSession = data.data.some(m => m.user_id === currentUserId && m.session_id);
+                    updateStatusDisplay(userHasActiveSession ? 'active' : 'inactive');
                 }
             } catch (err) {
-                console.error('Error fetching bay status:', err);
+                console.error('Error fetching user status:', err);
             }
         }
 
-        // Update status display
-        function updateStatusDisplay(status) {
+        // Update user status display
+        function updateStatusDisplay(userStatus) {
             const statusBox = document.getElementById('statusBox');
             const statusDot = statusBox.querySelector('.status-dot');
             const statusText = document.getElementById('statusText');
-            const messageBox = document.getElementById('messageBox');
-            const messageTitle = document.getElementById('messageTitle');
-            const messageText = document.getElementById('messageText');
             const userStatusEl = document.getElementById('userStatus');
 
-            if (status === 'busy') {
+            if (userStatus === 'active') {
                 userStatusEl.textContent = 'กำลังใช้งาน';
-                statusText.textContent = 'มีผู้ใช้งาน';
+                statusText.textContent = 'ใช้งานอยู่';
                 statusBox.className = 'info-card-status busy';
                 statusDot.className = 'status-dot busy';
-                messageBox.className = 'message-box busy';
-                messageTitle.textContent = '⚠️ กำลังใช้งาน';
-                messageText.textContent = 'ช่องบริการของคุณกำลังถูกใช้งานโดยผู้อื่น<br>กรุณารอสักครู่';
             } else {
-                userStatusEl.textContent = 'ว่าง';
-                statusText.textContent = 'เตรียมพร้อม';
+                userStatusEl.textContent = 'ไม่ได้ใช้งาน';
+                statusText.textContent = 'ยังไม่เริ่ม';
                 statusBox.className = 'info-card-status idle';
                 statusDot.className = 'status-dot idle';
-                messageBox.className = 'message-box';
-                messageTitle.textContent = '✅ พร้อมใช้งาน';
-                messageText.textContent = 'ขณะนี้ช่องบริการของคุณพร้อมใช้งาน<br>กรุณาขึ้นไปที่หน้าตู้เพื่อเริ่มบริการ';
             }
         }
 
@@ -430,20 +522,16 @@
         function logout() {
             localStorage.removeItem('cw_token');
             localStorage.removeItem('cw_refresh');
+            localStorage.removeItem('cw_login_time');
             window.location.href = '/app';
-        }
-
-        // Go back
-        function goBack() {
-            window.history.back();
         }
 
         // Init
         loadUser();
         updateElapsedTime();
         setInterval(updateElapsedTime, 1000);
-        // Refresh bay status every 3 seconds
-        setInterval(fetchBayStatus, 3000);
+        // Refresh user status every 2 seconds to check if session ended
+        setInterval(fetchUserUsageStatus, 2000);
     </script>
 </body>
 </html>

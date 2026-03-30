@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Car Wash — Admin Dashboard</title>
+    <title>Green Energy Car Wash — Admin Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
@@ -12,6 +12,41 @@
 </head>
 
 <body>
+    <!-- ════ LOGIN GATE ════ -->
+    <div id="loginGate" style="display:flex; position:fixed; inset:0; background:#0a0e1a; z-index:9999; align-items:center; justify-content:center; padding:1rem;">
+        <div style="background:linear-gradient(145deg, #111827, #0f172a); border:1px solid rgba(255,255,255,0.08); border-radius:24px; padding:2.5rem; width:100%; max-width:380px; box-shadow:0 32px 64px rgba(0,0,0,0.6);">
+            <div style="text-align:center; margin-bottom:2rem;">
+                <div style="width:64px; height:64px; background:linear-gradient(135deg,#3b82f6,#6d28d9); border-radius:16px; display:inline-flex; align-items:center; justify-content:center; margin-bottom:1rem; box-shadow:0 8px 24px rgba(59,130,246,0.3);">
+                    <i class="fa-solid fa-car-side" style="font-size:1.6rem; color:white;"></i>
+                </div>
+                <h2 style="font-size:1.3rem; font-weight:700; color:#f8fafc; margin:0;">Green Energy Car Wash</h2>
+                <p style="font-size:0.85rem; color:#64748b; margin:0.4rem 0 0;">Admin Dashboard Login</p>
+            </div>
+            <div id="loginError" style="display:none; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:12px; padding:0.7rem 1rem; margin-bottom:1rem; color:#f87171; font-size:0.85rem; text-align:center;"></div>
+            <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                <div style="position:relative;">
+                    <i class="fa-solid fa-user" style="position:absolute; left:1rem; top:50%; transform:translateY(-50%); color:#475569; font-size:0.85rem;"></i>
+                    <input id="loginUsername" type="text" placeholder="Username" autocomplete="username"
+                        style="width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:0.75rem 1rem 0.75rem 2.5rem; color:#f1f5f9; font-family:inherit; font-size:0.95rem; outline:none; box-sizing:border-box; transition:border-color 0.2s;"
+                        onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"
+                        onkeydown="if(event.key==='Enter')document.getElementById('loginPassword').focus()">
+                </div>
+                <div style="position:relative;">
+                    <i class="fa-solid fa-lock" style="position:absolute; left:1rem; top:50%; transform:translateY(-50%); color:#475569; font-size:0.85rem;"></i>
+                    <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password"
+                        style="width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:0.75rem 1rem 0.75rem 2.5rem; color:#f1f5f9; font-family:inherit; font-size:0.95rem; outline:none; box-sizing:border-box; transition:border-color 0.2s;"
+                        onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"
+                        onkeydown="if(event.key==='Enter')handleGateLogin()">
+                </div>
+            </div>
+            <button id="loginBtn" onclick="handleGateLogin()"
+                style="width:100%; margin-top:1.25rem; padding:0.85rem; border-radius:12px; border:none; background:linear-gradient(135deg,#3b82f6,#6d28d9); color:white; font-family:inherit; font-size:0.95rem; font-weight:600; cursor:pointer; box-shadow:0 4px 16px rgba(59,130,246,0.3); transition:opacity 0.2s;"
+                onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                <i class="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบ
+            </button>
+        </div>
+    </div>
+
     <!-- Mobile hamburger -->
     <button class="hamburger" onclick="toggleSidebar()" id="hamburgerBtn">
         <i class="fa-solid fa-bars" id="hamburgerIcon"></i> เมนู
@@ -23,8 +58,8 @@
         <div class="sidebar-logo">
             <div class="logo-icon"><i class="fa-solid fa-car-side"></i></div>
             <div class="logo-text">
-                <span class="logo-title">Smart Car</span>
-                <span class="logo-sub">Wash Admin</span>
+                <span class="logo-title">Green Energy Car Wash</span>
+                <span class="logo-sub">Admin</span>
             </div>
         </div>
 
@@ -45,9 +80,25 @@
                 <i class="fa-solid fa-users"></i>
                 <span>สมาชิก</span>
             </a>
+            <a href="#" class="nav-item" onclick="showSection('admins')">
+                <i class="fa-solid fa-user-shield"></i>
+                <span>จัดการแอดมิน</span>
+            </a>
+            <a href="#" class="nav-item" onclick="showSection('bayqr')">
+                <i class="fa-solid fa-qrcode"></i>
+                <span>QR Code ลูกค้า</span>
+            </a>
         </nav>
 
         <div class="sidebar-footer">
+            <div id="adminInfo" style="display:none; padding:0.5rem 0.75rem; margin-bottom:0.75rem; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2); border-radius:10px;">
+                <div style="font-size:0.75rem; color:#64748b;">Logged in as</div>
+                <div id="adminName" style="font-size:0.85rem; font-weight:600; color:#60a5fa; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+            </div>
+            <button onclick="handleLogout()" id="logoutBtn" style="display:none; width:100%; padding:0.55rem; border-radius:10px; border:1px solid rgba(239,68,68,0.3); background:rgba(239,68,68,0.08); color:#f87171; font-family:inherit; font-size:0.82rem; font-weight:600; cursor:pointer; margin-bottom:0.75rem; transition:background 0.2s;"
+                onmouseover="this.style.background='rgba(239,68,68,0.18)'" onmouseout="this.style.background='rgba(239,68,68,0.08)'">
+                <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+            </button>
             <div class="clock" id="clock">00:00:00</div>
             <div class="clock-date" id="clockDate">—</div>
         </div>
@@ -244,6 +295,67 @@
             </div>
         </section>
 
+        <!-- ════ SECTION: ADMINS ════ -->
+        <section id="section-admins" class="content-section">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">จัดการแอดมิน</h1>
+                    <p class="page-subtitle">เพิ่ม ลบ แอดมินผู้ดูแลระบบ</p>
+                </div>
+                <div style="display:flex; gap:0.6rem;">
+                    <button class="btn-refresh" onclick="openAddAdminModal()"
+                        style="background:linear-gradient(135deg,#8b5cf6,#6d28d9); box-shadow:0 4px 12px rgba(139,92,246,0.3);">
+                        <i class="fa-solid fa-user-plus"></i> เพิ่มแอดมิน
+                    </button>
+                    <button class="btn-refresh" onclick="fetchAdmins()">
+                        <i class="fa-solid fa-rotate-right"></i> รีเฟรช
+                    </button>
+                </div>
+            </div>
+
+            <div class="card" style="overflow-x:auto;">
+                <table class="user-table" id="adminTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Username</th>
+                            <th>ชื่อ</th>
+                            <th>สร้างเมื่อ</th>
+                            <th>จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminTableBody">
+                        <tr>
+                            <td colspan="5" class="table-empty">กำลังโหลด...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ════ SECTION: BAY QR CODES ════ -->
+        <section id="section-bayqr" class="content-section">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">QR Code สำหรับลูกค้า</h1>
+                    <p class="page-subtitle">พิมพ์ QR Code ติดหน้าตู้แต่ละ Bay ให้ลูกค้าสแกนเข้าใช้งาน</p>
+                </div>
+                <div style="display:flex; gap:0.6rem;">
+                    <button class="btn-refresh" onclick="printBayQR()"
+                        style="background:linear-gradient(135deg,#8b5cf6,#6d28d9); box-shadow:0 4px 12px rgba(139,92,246,0.3);">
+                        <i class="fa-solid fa-print"></i> พิมพ์ทั้งหมด
+                    </button>
+                    <button class="btn-refresh" onclick="fetchBayQRCodes()">
+                        <i class="fa-solid fa-rotate-right"></i> รีเฟรช
+                    </button>
+                </div>
+            </div>
+
+            <div id="bayQrGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:1rem;">
+                <div class="card" style="text-align:center; padding:2rem; color:#475569;">กำลังโหลด...</div>
+            </div>
+        </section>
+
     </main>
 
     <div id="toast" class="toast hidden"></div>
@@ -297,7 +409,7 @@
             </div>
             <p id="changePwdLabel" style="font-size:0.85rem; color:#94a3b8; margin-bottom:1rem;"></p>
             <input id="pwdUserId" type="hidden">
-            <input id="newPassword" type="password" placeholder="รหัสผ่านใหม่ (อย่างน้อย 6 ตัว)"
+            <input id="newPassword" type="password" placeholder="รหัสผ่านใหม่ (อย่างน้อย 8 ตัว)"
                 style="width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:0.75rem 1rem; color:#f1f5f9; font-family:inherit; font-size:0.95rem; outline:none; margin-bottom:1.25rem;">
             <div style="display:flex; gap:0.6rem;">
                 <button onclick="submitChangePassword()"
@@ -305,6 +417,39 @@
                     <i class="fa-solid fa-key"></i> บันทึก
                 </button>
                 <button onclick="closeChangePasswordModal()"
+                    style="flex:1; padding:0.8rem; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:transparent; color:#94a3b8; font-family:inherit; font-size:0.92rem; cursor:pointer;">
+                    ยกเลิก
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════ MODAL: Add Admin ════ -->
+    <div id="modalAddAdmin"
+        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); z-index:500; align-items:center; justify-content:center; padding:1rem;">
+        <div
+            style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:2rem; width:100%; max-width:400px; box-shadow:0 32px 64px rgba(0,0,0,0.6);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                <h3 style="font-size:1.1rem; font-weight:700; color:#a78bfa;"><i class="fa-solid fa-user-shield"></i>
+                    เพิ่มแอดมินใหม่</h3>
+                <button onclick="closeAddAdminModal()"
+                    style="background:none; border:none; color:#64748b; font-size:1.2rem; cursor:pointer;"><i
+                        class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                <input id="addAdminUsername" type="text" placeholder="Username *"
+                    style="width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:0.75rem 1rem; color:#f1f5f9; font-family:inherit; font-size:0.95rem; outline:none; box-sizing:border-box;">
+                <input id="addAdminName" type="text" placeholder="ชื่อแสดง *"
+                    style="width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:0.75rem 1rem; color:#f1f5f9; font-family:inherit; font-size:0.95rem; outline:none; box-sizing:border-box;">
+                <input id="addAdminPassword" type="password" placeholder="Password * (อย่างน้อย 8 ตัว)"
+                    style="width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:0.75rem 1rem; color:#f1f5f9; font-family:inherit; font-size:0.95rem; outline:none; box-sizing:border-box;">
+            </div>
+            <div style="display:flex; gap:0.6rem; margin-top:1.25rem;">
+                <button onclick="submitAddAdmin()"
+                    style="flex:1; padding:0.8rem; border-radius:12px; border:none; background:linear-gradient(135deg,#8b5cf6,#6d28d9); color:white; font-family:inherit; font-size:0.92rem; font-weight:600; cursor:pointer;">
+                    <i class="fa-solid fa-check"></i> เพิ่มแอดมิน
+                </button>
+                <button onclick="closeAddAdminModal()"
                     style="flex:1; padding:0.8rem; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:transparent; color:#94a3b8; font-family:inherit; font-size:0.92rem; cursor:pointer;">
                     ยกเลิก
                 </button>

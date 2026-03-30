@@ -2,15 +2,15 @@
  * ESP8266 Relay Control Routes
  */
 
-module.exports = function(app, db, pushCommandToFirebase) {
-    
+module.exports = function(app, db, pushCommandToFirebase, espApiKeyMiddleware) {
+
     // ─── Turn Relay ON ──────────────────────────────────
-    app.post('/api/bay/:id/relay/:type/on', (req, res) => {
+    app.post('/api/bay/:id/relay/:type/on', espApiKeyMiddleware, (req, res) => {
         const bayId = parseInt(req.params.id);
         const relayType = req.params.type.toUpperCase();
         const command = relayType + '_ON';
         
-        const validTypes = ['WATER', 'FOAM', 'AIR', 'WAX', 'TYRE'];
+        const validTypes = ['WATER', 'FOAM', 'AIR', 'AIR_DRY', 'AIR_FILL', 'VACUUM', 'WAX', 'TYRE', 'HAND_WASH'];
         if (!validTypes.includes(relayType)) {
             return res.status(400).json({ message: '❌ ประเภท Relay ไม่ถูกต้อง' });
         }
@@ -38,12 +38,12 @@ module.exports = function(app, db, pushCommandToFirebase) {
     });
     
     // ─── Turn Relay OFF ─────────────────────────────────
-    app.post('/api/bay/:id/relay/:type/off', (req, res) => {
+    app.post('/api/bay/:id/relay/:type/off', espApiKeyMiddleware, (req, res) => {
         const bayId = parseInt(req.params.id);
         const relayType = req.params.type.toUpperCase();
         const command = relayType + '_OFF';
         
-        const validTypes = ['WATER', 'FOAM', 'AIR', 'WAX', 'TYRE'];
+        const validTypes = ['WATER', 'FOAM', 'AIR', 'AIR_DRY', 'AIR_FILL', 'VACUUM', 'WAX', 'TYRE', 'HAND_WASH'];
         if (!validTypes.includes(relayType)) {
             return res.status(400).json({ message: '❌ ประเภท Relay ไม่ถูกต้อง' });
         }
@@ -67,7 +67,7 @@ module.exports = function(app, db, pushCommandToFirebase) {
     });
     
     // ─── Emergency Stop ─────────────────────────────────
-    app.post('/api/bay/:id/relay/emergency-stop', (req, res) => {
+    app.post('/api/bay/:id/relay/emergency-stop', espApiKeyMiddleware, (req, res) => {
         const bayId = parseInt(req.params.id);
         const command = 'EMERGENCY_STOP';
         

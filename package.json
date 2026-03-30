@@ -1,7 +1,7 @@
 {
   "name": "carwash-api",
   "version": "1.1.0",
-  "description": "Smart Car Wash System - API Server with Security & IoT Control",
+  "description": "Green Energy Car Wash - API Server with Security & IoT Control",
   "main": "index.js",
   "scripts": {
     "start": "node init_db.js && node server.js",

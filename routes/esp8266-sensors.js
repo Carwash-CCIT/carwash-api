@@ -2,10 +2,10 @@
  * ESP8266 Sensor Monitoring Routes
  */
 
-module.exports = function(app, db) {
-    
+module.exports = function(app, db, espApiKeyMiddleware) {
+
     // ─── Report Sensor Data ─────────────────────────────
-    app.post('/api/bay/:id/sensors/report', (req, res) => {
+    app.post('/api/bay/:id/sensors/report', espApiKeyMiddleware, (req, res) => {
         const bayId = parseInt(req.params.id);
         const { waterLevel, motionDetected, faultDetected, coinValue, relayStates } = req.body;
         
@@ -31,7 +31,7 @@ module.exports = function(app, db) {
     });
     
     // ─── Get Sensor Status ──────────────────────────────
-    app.get('/api/bay/:id/sensors', (req, res) => {
+    app.get('/api/bay/:id/sensors', espApiKeyMiddleware, (req, res) => {
         const bayId = parseInt(req.params.id);
         
         db.get("SELECT * FROM machines WHERE id = ?", [bayId], (err, machine) => {

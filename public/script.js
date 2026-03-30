@@ -1,3 +1,131 @@
+// ─── Utilities ───────────────────────────────────────────────
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function getAdminToken() {
+    return localStorage.getItem('admin_token') || '';
+}
+
+function adminHeaders(extra = {}) {
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAdminToken()}`,
+        ...extra
+    };
+}
+
+async function adminFetch(url, options = {}) {
+    options.headers = adminHeaders(options.headers);
+    const res = await fetch(url, options);
+    if (res.status === 401 || res.status === 403) {
+        adminLogout();
+        throw new Error('Unauthorized');
+    }
+    return res;
+}
+
+// ─── Login Gate ──────────────────────────────────────────────
+async function handleGateLogin() {
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errorEl = document.getElementById('loginError');
+    const btn = document.getElementById('loginBtn');
+
+    if (!username || !password) {
+        errorEl.textContent = 'กรุณากรอก Username และ Password';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังเข้าสู่ระบบ...';
+    errorEl.style.display = 'none';
+
+    try {
+        const res = await fetch('/auth/admin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.token) {
+            errorEl.textContent = data.message || 'เข้าสู่ระบบไม่สำเร็จ';
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        localStorage.setItem('admin_token', data.token);
+        localStorage.setItem('admin_name', data.user?.name || username);
+
+        enterDashboard();
+    } catch (e) {
+        errorEl.textContent = 'ไม่สามารถเชื่อมต่อ Server ได้';
+        errorEl.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> เข้าสู่ระบบ';
+    }
+}
+
+function enterDashboard() {
+    document.getElementById('loginGate').style.display = 'none';
+    const name = localStorage.getItem('admin_name') || 'Admin';
+    document.getElementById('adminName').textContent = name;
+    document.getElementById('adminInfo').style.display = 'block';
+    document.getElementById('logoutBtn').style.display = 'block';
+    fetchMachines();
+    if (!pollTimer) {
+        pollTimer = setInterval(() => { fetchMachines(); }, 3000);
+    }
+}
+
+function adminLogout() {
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_name');
+    document.getElementById('loginGate').style.display = 'flex';
+    document.getElementById('adminInfo').style.display = 'none';
+    document.getElementById('logoutBtn').style.display = 'none';
+    document.getElementById('loginUsername').value = '';
+    document.getElementById('loginPassword').value = '';
+    document.getElementById('loginError').style.display = 'none';
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+
+function handleLogout() {
+    const token = getAdminToken();
+    if (token) {
+        fetch('/auth/logout', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        }).catch(() => {});
+    }
+    adminLogout();
+}
+
+// Auto-login if token exists
+async function checkExistingSession() {
+    const token = getAdminToken();
+    if (!token) return;
+    try {
+        const res = await fetch('/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok && data.user?.role === 'admin') {
+            localStorage.setItem('admin_name', data.user.name || data.user.username || 'Admin');
+            enterDashboard();
+        } else {
+            adminLogout();
+        }
+    } catch {
+        adminLogout();
+    }
+}
+
 // ─── Clock ────────────────────────────────────────────────────
 function updateClock() {
     const now = new Date();
@@ -16,6 +144,8 @@ function showSection(name) {
     if (name === 'members') fetchUsers();
     if (name === 'control') fetchMachines();
     if (name === 'finance') fetchFinance();
+    if (name === 'admins') fetchAdmins();
+    if (name === 'bayqr') fetchBayQRCodes();
 }
 
 function refreshAll() {
@@ -215,9 +345,8 @@ async function sendCommandToBay(machineId, command, btnEl) {
     if (btnEl) btnEl.classList.add('sending');
 
     try {
-        const res = await fetch('/admin/command', {
+        const res = await adminFetch('/admin/command', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ machine_id: machineId, command })
         });
         const data = await res.json();
@@ -228,7 +357,7 @@ async function sendCommandToBay(machineId, command, btnEl) {
         }
         fetchMachines();
     } catch (e) {
-        showToast('Connection Error', 'error');
+        if (e.message !== 'Unauthorized') showToast('Connection Error', 'error');
     } finally {
         if (btnEl) {
             setTimeout(() => btnEl.classList.remove('sending'), 600);
@@ -252,9 +381,8 @@ const CMD_LABELS = {
 async function forceResetBay(machineId) {
     if (!confirm(`Force Reset Bay ${machineId}? ระบบจะปิด Session และคืนสถานะเป็น "ว่าง"`)) return;
     try {
-        const res = await fetch('/admin/reset-bay', {
+        const res = await adminFetch('/admin/reset-bay', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ machine_id: machineId })
         });
         const data = await res.json();
@@ -273,9 +401,8 @@ async function sendCommand(command) {
     cmdEl.style.color = '#94a3b8';
 
     try {
-        const res = await fetch('/admin/command', {
+        const res = await adminFetch('/admin/command', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ machine_id: selectedBayId, command })
         });
         const data = await res.json();
@@ -298,7 +425,7 @@ async function sendCommand(command) {
 async function fetchUsers() {
     const tbody = document.getElementById('userTableBody');
     try {
-        const res = await fetch('/admin/users');
+        const res = await adminFetch('/admin/users');
         const data = await res.json();
         if (data.users) {
             renderUsers(data.users);
@@ -348,11 +475,11 @@ function renderUsers(users) {
             </td>
             <td>
                 <div style="display:flex; gap:0.4rem;">
-                    <button onclick="openChangePasswordModal(${u.id}, '${u.name || u.phone || u.email}')" title="เปลี่ยนรหัสผ่าน"
+                    <button data-userid="${u.id}" data-username="${escapeHtml(u.name || u.phone || u.email || '')}" onclick="openChangePasswordModal(this.dataset.userid, this.dataset.username)" title="เปลี่ยนรหัสผ่าน"
                         style="padding:0.35rem 0.6rem; border-radius:8px; border:1px solid rgba(59,130,246,0.4); background:rgba(59,130,246,0.1); color:#60a5fa; cursor:pointer; font-size:0.8rem;">
                         <i class="fa-solid fa-key"></i>
                     </button>
-                    <button onclick="deleteUser(${u.id}, '${u.name || u.phone || u.email}')" title="ลบสมาชิก"
+                    <button data-userid="${u.id}" data-username="${escapeHtml(u.name || u.phone || u.email || '')}" onclick="deleteUser(this.dataset.userid, this.dataset.username)" title="ลบสมาชิก"
                         style="padding:0.35rem 0.6rem; border-radius:8px; border:1px solid rgba(239,68,68,0.4); background:rgba(239,68,68,0.1); color:#f87171; cursor:pointer; font-size:0.8rem;">
                         <i class="fa-solid fa-trash"></i>
                     </button>
@@ -367,9 +494,8 @@ async function adminTopup(userId) {
     const amount = parseInt(amtInput.value);
     if (!amount || amount <= 0) return showToast('ระบุจำนวนเงิน', 'error');
     try {
-        const res = await fetch('/admin/topup', {
+        const res = await adminFetch('/admin/topup', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ user_id: userId, amount })
         });
         const data = await res.json();
@@ -385,9 +511,8 @@ async function adminDeduct(userId) {
     const amount = parseInt(amtInput.value);
     if (!amount || amount <= 0) return showToast('ระบุจำนวนเงินที่จะลด', 'error');
     try {
-        const res = await fetch('/admin/deduct', {
+        const res = await adminFetch('/admin/deduct', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ user_id: userId, amount })
         });
         const data = await res.json();
@@ -405,7 +530,7 @@ async function fetchFinance() {
     const monthlyEl = document.getElementById('finMonthly');
 
     try {
-        const res = await fetch('/admin/finance');
+        const res = await adminFetch('/admin/finance');
         const data = await res.json();
         
         if (!data.data) {
@@ -465,14 +590,202 @@ function renderFinanceTable(elId, rows, labelText) {
     }).join('');
 }
 
+// ─── Admin Management ─────────────────────────────────────────
+
+async function fetchAdmins() {
+    const tbody = document.getElementById('adminTableBody');
+    try {
+        const res = await adminFetch('/admin/admins');
+        const data = await res.json();
+        if (data.admins) {
+            renderAdmins(data.admins);
+        } else {
+            tbody.innerHTML = '<tr><td colspan="5" class="table-empty">ไม่พบข้อมูล</td></tr>';
+        }
+    } catch (err) {
+        if (err.message !== 'Unauthorized') {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--muted);">Connection Error</td></tr>';
+        }
+    }
+}
+
+function renderAdmins(admins) {
+    const tbody = document.getElementById('adminTableBody');
+    if (admins.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="table-empty">ยังไม่มีแอดมิน</td></tr>';
+        return;
+    }
+    tbody.innerHTML = admins.map(a => `
+        <tr>
+            <td style="color:var(--muted)">${a.id}</td>
+            <td style="font-weight:600; color:#a78bfa;">
+                ${escapeHtml(a.username || '')}
+                ${a.is_primary ? '<span style="display:inline-block; margin-left:0.4rem; padding:0.1rem 0.45rem; font-size:0.65rem; background:rgba(234,179,8,0.15); color:#facc15; border:1px solid rgba(234,179,8,0.3); border-radius:6px; font-weight:600;">ADMIN หลัก</span>' : ''}
+            </td>
+            <td>${escapeHtml(a.name || '')}</td>
+            <td style="color:var(--muted); font-size:0.82rem;">${a.created_at ? new Date(a.created_at).toLocaleDateString('th-TH') : '-'}</td>
+            <td>
+                <div style="display:flex; gap:0.4rem;">
+                    <button data-adminid="${a.id}" data-adminname="${escapeHtml(a.username || '')}" onclick="changeAdminPassword(this.dataset.adminid, this.dataset.adminname)" title="เปลี่ยนรหัสผ่าน"
+                        style="padding:0.35rem 0.6rem; border-radius:8px; border:1px solid rgba(139,92,246,0.4); background:rgba(139,92,246,0.1); color:#a78bfa; cursor:pointer; font-size:0.8rem;">
+                        <i class="fa-solid fa-key"></i>
+                    </button>
+                    ${a.is_primary ? '' : `<button data-adminid="${a.id}" data-adminname="${escapeHtml(a.username || '')}" onclick="deleteAdmin(this.dataset.adminid, this.dataset.adminname)" title="ลบแอดมิน"
+                        style="padding:0.35rem 0.6rem; border-radius:8px; border:1px solid rgba(239,68,68,0.4); background:rgba(239,68,68,0.1); color:#f87171; cursor:pointer; font-size:0.8rem;">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>`}
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function openAddAdminModal() {
+    document.getElementById('addAdminUsername').value = '';
+    document.getElementById('addAdminName').value = '';
+    document.getElementById('addAdminPassword').value = '';
+    document.getElementById('modalAddAdmin').style.display = 'flex';
+}
+
+function closeAddAdminModal() {
+    document.getElementById('modalAddAdmin').style.display = 'none';
+}
+
+async function submitAddAdmin() {
+    const username = document.getElementById('addAdminUsername').value.trim();
+    const name = document.getElementById('addAdminName').value.trim();
+    const password = document.getElementById('addAdminPassword').value;
+    if (!username || !name || !password) {
+        return showToast('กรุณากรอกข้อมูลให้ครบ', 'error');
+    }
+    if (password.length < 8) {
+        return showToast('Password ต้องมีอย่างน้อย 8 ตัวอักษร', 'error');
+    }
+    try {
+        const res = await adminFetch('/admin/admins', {
+            method: 'POST',
+            body: JSON.stringify({ username, name, password })
+        });
+        const data = await res.json();
+        showToast(data.message, res.ok ? 'success' : 'error');
+        if (res.ok) { closeAddAdminModal(); fetchAdmins(); }
+    } catch (e) {
+        if (e.message !== 'Unauthorized') showToast('Connection Error', 'error');
+    }
+}
+
+async function deleteAdmin(id, name) {
+    if (!confirm(`ลบแอดมิน "${name}" ออกจากระบบ?`)) return;
+    try {
+        const res = await adminFetch(`/admin/admins/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        showToast(data.message, res.ok ? 'success' : 'error');
+        if (res.ok) fetchAdmins();
+    } catch (e) {
+        if (e.message !== 'Unauthorized') showToast('Connection Error', 'error');
+    }
+}
+
+async function changeAdminPassword(id, name) {
+    const password = prompt(`ตั้งรหัสผ่านใหม่สำหรับ "${name}" (อย่างน้อย 8 ตัว):`);
+    if (!password) return;
+    if (password.length < 8) return showToast('Password ต้องมีอย่างน้อย 8 ตัวอักษร', 'error');
+    try {
+        const res = await adminFetch(`/admin/admins/${id}/password`, {
+            method: 'PUT',
+            body: JSON.stringify({ password })
+        });
+        const data = await res.json();
+        showToast(data.message, res.ok ? 'success' : 'error');
+    } catch (e) {
+        if (e.message !== 'Unauthorized') showToast('Connection Error', 'error');
+    }
+}
+
+// ─── Bay QR Codes ────────────────────────────────────────────
+
+async function fetchBayQRCodes() {
+    const grid = document.getElementById('bayQrGrid');
+    grid.innerHTML = '<div class="card" style="text-align:center; padding:2rem; color:#475569;">กำลังโหลด...</div>';
+    try {
+        const res = await adminFetch('/admin/bay-qrcodes');
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+
+        if (!data.bays || data.bays.length === 0) {
+            grid.innerHTML = '<div class="card" style="text-align:center; padding:2rem; color:#475569;">ไม่พบข้อมูล Bay</div>';
+            return;
+        }
+
+        grid.innerHTML = data.bays.map(bay => {
+            const statusColor = bay.status === 'idle' ? '#10b981' : '#ef4444';
+            const statusText = bay.status === 'idle' ? 'ว่าง' : 'ใช้งาน';
+            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(bay.url)}`;
+            return `<div class="card" style="text-align:center; padding:1.5rem;" data-bay-qr>
+                <div style="margin-bottom:1rem;">
+                    <span style="font-size:1.3rem; font-weight:800; color:#3b82f6;">${escapeHtml(bay.bay_name || 'Bay ' + bay.bay_id)}</span>
+                    <span style="display:inline-block; margin-left:0.5rem; padding:0.2rem 0.6rem; border-radius:6px; font-size:0.7rem; font-weight:600; background:${statusColor}22; color:${statusColor}; border:1px solid ${statusColor}44;">${statusText}</span>
+                </div>
+                <div style="background:white; display:inline-block; padding:12px; border-radius:12px; margin-bottom:1rem;">
+                    <img src="${qrApiUrl}" alt="QR Bay ${bay.bay_id}" style="width:180px; height:180px; display:block;">
+                </div>
+                <div style="font-size:0.75rem; color:#64748b; word-break:break-all; margin-bottom:0.75rem;">${escapeHtml(bay.url)}</div>
+                <button onclick="copyBayUrl('${escapeHtml(bay.url)}')" style="padding:0.4rem 1rem; background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.3); color:#93c5fd; border-radius:8px; font-family:inherit; font-size:0.8rem; cursor:pointer; transition:all 0.2s;">
+                    <i class="fa-solid fa-copy"></i> คัดลอก URL
+                </button>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        if (e.message !== 'Unauthorized') {
+            grid.innerHTML = `<div class="card" style="text-align:center; padding:2rem; color:#f87171;">${escapeHtml(e.message)}</div>`;
+        }
+    }
+}
+
+function copyBayUrl(url) {
+    navigator.clipboard.writeText(url).then(() => {
+        showToast('คัดลอก URL แล้ว', 'success');
+    }).catch(() => {
+        showToast('คัดลอกไม่สำเร็จ', 'error');
+    });
+}
+
+function printBayQR() {
+    const cards = document.querySelectorAll('[data-bay-qr]');
+    if (cards.length === 0) return showToast('ไม่พบ QR Code ให้พิมพ์', 'error');
+    const win = window.open('', '_blank');
+    win.document.write(`<!DOCTYPE html><html><head><title>พิมพ์ QR Code - Green Energy Car Wash</title>
+        <style>
+            body { font-family: 'Segoe UI', sans-serif; padding: 1rem; }
+            .qr-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }
+            .qr-item { text-align: center; border: 2px solid #e2e8f0; border-radius: 16px; padding: 1.5rem; page-break-inside: avoid; }
+            .qr-item h2 { margin: 0 0 0.5rem; font-size: 1.5rem; color: #1e293b; }
+            .qr-item img { width: 200px; height: 200px; }
+            .qr-item p { margin: 0.5rem 0 0; font-size: 0.8rem; color: #64748b; }
+            .qr-item .scan-text { font-size: 1rem; font-weight: 600; color: #334155; margin-top: 0.75rem; }
+            @media print { body { padding: 0; } .qr-grid { gap: 1rem; } }
+        </style></head><body>
+        <div class="qr-grid">`);
+    cards.forEach(card => {
+        const name = card.querySelector('span[style*="font-weight:800"]')?.textContent || '';
+        const img = card.querySelector('img');
+        const url = card.querySelector('div[style*="word-break"]')?.textContent || '';
+        win.document.write(`<div class="qr-item">
+            <h2>${name}</h2>
+            <img src="${img?.src || ''}" alt="${name}">
+            <p class="scan-text">สแกนเพื่อเข้าใช้บริการ</p>
+            <p>${url}</p>
+        </div>`);
+    });
+    win.document.write('</div></body></html>');
+    win.document.close();
+    setTimeout(() => win.print(), 500);
+}
+
 // ─── Init ─────────────────────────────────────────────────────
 
 window.onload = () => {
-    fetchMachines();
-    // Don't fetch users/finance on load since they need admin auth
-    if (!pollTimer) {
-        pollTimer = setInterval(() => { fetchMachines(); }, 10000);
-    }
+    checkExistingSession();
 };
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
@@ -480,7 +793,7 @@ document.addEventListener('visibilitychange', () => {
     } else {
         fetchMachines();
         if (!pollTimer) {
-            pollTimer = setInterval(() => { fetchMachines(); }, 10000);
+            pollTimer = setInterval(() => { fetchMachines(); }, 3000);
         }
     }
 });
@@ -491,7 +804,7 @@ document.addEventListener('visibilitychange', () => {
 async function deleteUser(userId, name) {
     if (!confirm(`⚠️ ลบสมาชิก "${name}" ออกจากระบบ?\nข้อมูลและธุรกรรมทั้งหมดจะถูกลบด้วย`)) return;
     try {
-        const res = await fetch(`/admin/users/${userId}`, { method: 'DELETE' });
+        const res = await adminFetch(`/admin/users/${userId}`, { method: 'DELETE' });
         const data = await res.json();
         showToast(data.message, res.ok ? 'success' : 'error');
         if (res.ok) fetchUsers();
@@ -521,9 +834,8 @@ async function submitAddUser() {
         return showToast('ต้องระบุชื่อ และ เบอร์โทร/อีเมล อย่างน้อย 1 อย่าง', 'error');
     }
     try {
-        const res = await fetch('/admin/users', {
+        const res = await adminFetch('/admin/users', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, phone: phone || null, email: email || null, password: pwd || null })
         });
         const data = await res.json();
@@ -548,13 +860,12 @@ function closeChangePasswordModal() {
 async function submitChangePassword() {
     const userId = document.getElementById('pwdUserId').value;
     const password = document.getElementById('newPassword').value;
-    if (!password || password.length < 6) {
-        return showToast('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร', 'error');
+    if (!password || password.length < 8) {
+        return showToast('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร', 'error');
     }
     try {
-        const res = await fetch(`/admin/users/${userId}/password`, {
+        const res = await adminFetch(`/admin/users/${userId}/password`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ password })
         });
         const data = await res.json();

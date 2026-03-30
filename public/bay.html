@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Green Energy Car Wash</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: linear-gradient(135deg, #030712 0%, #0f172a 100%);
+            min-height: 100vh;
+            font-family: 'Outfit', sans-serif;
+            color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* ─── LOGIN / REGISTER SCREEN ─── */
+        #authScreen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1rem;
+            width: 100%;
+        }
+        .auth-card {
+            background: rgba(15,23,42,0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 24px;
+            padding: 2.5rem 2rem;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 32px 64px rgba(0,0,0,0.5);
+        }
+        .auth-logo {
+            width: 72px; height: 72px;
+            background: linear-gradient(135deg, #3b82f6, #6d28d9);
+            border-radius: 18px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 1rem;
+            box-shadow: 0 8px 24px rgba(59,130,246,0.3);
+        }
+        .auth-logo i { font-size: 1.8rem; color: white; }
+        .auth-title { text-align: center; margin-bottom: 0.3rem; font-size: 1.4rem; font-weight: 700; }
+        .auth-subtitle { text-align: center; color: #64748b; font-size: 0.85rem; margin-bottom: 2rem; }
+        .bay-badge {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3);
+            color: #93c5fd; padding: 0.4rem 1rem; border-radius: 20px;
+            font-size: 0.85rem; font-weight: 600; margin-bottom: 1.5rem;
+        }
+        .bay-badge i { font-size: 0.75rem; }
+
+        .google-login-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .google-login-section p {
+            color: #cbd5e1;
+            font-size: 0.9rem;
+        }
+        #googleSignInButton {
+            display: flex !important;
+            justify-content: center;
+            width: 100% !important;
+        }
+        #googleSignInButton > div {
+            display: flex !important;
+            justify-content: center !important;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 0.85rem;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, #3b82f6, #6d28d9);
+            color: white;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(59,130,246,0.3);
+            transition: opacity 0.2s;
+            margin-top: 0.5rem;
+        }
+        .btn-primary:hover:not(:disabled) { opacity: 0.9; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .auth-msg {
+            padding: 0.7rem 1rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .auth-msg.error { display: flex; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171; }
+        .auth-msg.success { display: flex; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: #6ee7b7; }
+
+        /* ─── DASHBOARD SCREEN ─── */
+        #dashScreen {
+            display: none;
+            width: 100%;
+            max-width: 500px;
+            padding: 1rem;
+            min-height: 100vh;
+        }
+
+        .dash-header {
+            background: rgba(15,23,42,0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .dash-user-row {
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .dash-user-info { display: flex; align-items: center; gap: 0.8rem; }
+        .dash-avatar {
+            width: 44px; height: 44px;
+            background: linear-gradient(135deg, #3b82f6, #6d28d9);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; color: white;
+        }
+        .dash-name { font-weight: 700; font-size: 1rem; }
+        .dash-phone { color: #64748b; font-size: 0.8rem; }
+        .btn-logout {
+            padding: 0.5rem 1rem;
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            color: #fca5a5;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-logout:hover { background: rgba(239,68,68,0.2); }
+
+        .wallet-card {
+            background: linear-gradient(145deg, rgba(16,185,129,0.12), rgba(59,130,246,0.08));
+            border: 1px solid rgba(16,185,129,0.2);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .wallet-label { color: #94a3b8; font-size: 0.85rem; margin-bottom: 0.5rem; }
+        .wallet-amount { font-size: 3rem; font-weight: 800; color: #6ee7b7; }
+        .wallet-actions {
+            display: flex; gap: 0.75rem; margin-top: 1.5rem; justify-content: center;
+        }
+        .btn-wallet {
+            padding: 0.6rem 1.5rem;
+            border-radius: 12px;
+            border: none;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex; align-items: center; gap: 0.4rem;
+            transition: all 0.2s;
+        }
+        .btn-topup {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white; box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+        }
+        .btn-history {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            color: #94a3b8;
+        }
+
+        .bay-card {
+            background: rgba(15,23,42,0.8);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(59,130,246,0.2);
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .bay-card-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 1.5rem; padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .bay-number { font-size: 1.5rem; font-weight: 800; color: #3b82f6; }
+        .bay-status {
+            padding: 0.4rem 1rem; border-radius: 8px;
+            font-size: 0.8rem; font-weight: 600;
+            display: flex; align-items: center; gap: 0.4rem;
+        }
+        .bay-status.idle { background: rgba(16,185,129,0.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.3); }
+        .bay-status.busy { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+
+        .session-panel {
+            background: rgba(59,130,246,0.08);
+            border: 1px solid rgba(59,130,246,0.2);
+            border-radius: 14px;
+            padding: 1.2rem;
+            display: none;
+        }
+        .session-panel.show { display: block; }
+        .session-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .session-row:last-child { border-bottom: none; }
+        .session-label { color: #64748b; font-size: 0.85rem; }
+        .session-value { font-weight: 700; color: #93c5fd; font-size: 0.95rem; }
+        .timer-display {
+            text-align: center; font-size: 2rem; font-weight: 800;
+            font-family: 'Courier New', monospace; color: #f8fafc;
+            margin: 1rem 0;
+        }
+        .btn-stop {
+            width: 100%; padding: 0.85rem;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white; border: none; border-radius: 12px;
+            font-family: inherit; font-weight: 700; font-size: 0.95rem;
+            cursor: pointer; margin-top: 0.75rem; transition: all 0.2s;
+        }
+        .btn-stop:hover:not(:disabled) { box-shadow: 0 4px 16px rgba(239,68,68,0.3); }
+        .btn-stop:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ─── History Modal ─── */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.7); z-index: 999;
+            align-items: center; justify-content: center; padding: 1rem;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: #0f172a; border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px; padding: 1.5rem; width: 100%; max-width: 420px;
+            max-height: 80vh; overflow-y: auto;
+        }
+        .modal-title {
+            font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .modal-close {
+            background: none; border: none; color: #64748b; font-size: 1.2rem; cursor: pointer;
+        }
+        .history-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.8rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .history-item:last-child { border-bottom: none; }
+        .history-type { font-size: 0.8rem; font-weight: 600; }
+        .history-type.topup { color: #6ee7b7; }
+        .history-type.reserve, .history-type.usage { color: #fca5a5; }
+        .history-type.refund { color: #93c5fd; }
+        .history-date { font-size: 0.75rem; color: #475569; }
+        .history-amount { font-weight: 700; font-size: 0.95rem; }
+        .history-amount.plus { color: #6ee7b7; }
+        .history-amount.minus { color: #fca5a5; }
+
+        /* ─── Topup Modal ─── */
+        .topup-amounts {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;
+            margin: 1rem 0;
+        }
+        .topup-btn {
+            padding: 1rem 0.5rem;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: #f1f5f9;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .topup-btn:hover { border-color: #3b82f6; background: rgba(59,130,246,0.1); }
+
+        .info-note {
+            background: rgba(59,130,246,0.08);
+            border: 1px solid rgba(59,130,246,0.2);
+            border-radius: 12px;
+            padding: 1rem;
+            font-size: 0.8rem;
+            color: #93c5fd;
+            line-height: 1.6;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 400px) {
+            .auth-card { padding: 2rem 1.2rem; }
+            .wallet-amount { font-size: 2.5rem; }
+            .topup-amounts { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ════════ AUTH SCREEN ════════ -->
+<div id="authScreen">
+    <div class="auth-card">
+        <div class="auth-logo"><i class="fa-solid fa-car-side"></i></div>
+        <div class="auth-title">Green Energy Car Wash</div>
+        <div class="auth-subtitle">ระบบล้างรถอัจฉริยะ</div>
+        <div style="text-align:center;">
+            <div class="bay-badge" id="authBayBadge">
+                <i class="fa-solid fa-location-dot"></i>
+                <span id="authBayLabel">Bay 1</span>
+            </div>
+        </div>
+
+        <div id="authMsg" class="auth-msg"></div>
+
+        <!-- Google Sign-In -->
+        <div class="google-login-section">
+            <p>เข้าสู่ระบบ / สมัครสมาชิก</p>
+            <div id="googleSignInButton"></div>
+        </div>
+
+        <div class="info-note">
+            <i class="fa-solid fa-circle-info"></i>
+            สแกน QR Code ที่ตู้ล้างรถเพื่อเข้าใช้งาน ยอดเงินที่ใช้ไม่หมดจะถูกเก็บไว้ในบัญชีของคุณ
+        </div>
+    </div>
+</div>
+
+<!-- ════════ DASHBOARD SCREEN ════════ -->
+<div id="dashScreen">
+    <!-- User Header -->
+    <div class="dash-header">
+        <div class="dash-user-row">
+            <div class="dash-user-info">
+                <div class="dash-avatar"><i class="fa-solid fa-user"></i></div>
+                <div>
+                    <div class="dash-name" id="dashName">-</div>
+                    <div class="dash-phone" id="dashPhone">-</div>
+                </div>
+            </div>
+            <button class="btn-logout" onclick="handleLogout()">
+                <i class="fa-solid fa-sign-out-alt"></i> ออก
+            </button>
+        </div>
+    </div>
+
+    <!-- Wallet -->
+    <div class="wallet-card">
+        <div class="wallet-label"><i class="fa-solid fa-wallet"></i> ยอดเงินคงเหลือ</div>
+        <div class="wallet-amount" id="dashBalance">฿0</div>
+        <div class="wallet-actions">
+            <button class="btn-wallet btn-topup" onclick="openTopupModal()">
+                <i class="fa-solid fa-plus"></i> เติมเงิน
+            </button>
+            <button class="btn-wallet btn-history" onclick="openHistoryModal()">
+                <i class="fa-solid fa-clock-rotate-left"></i> ประวัติ
+            </button>
+        </div>
+    </div>
+
+    <!-- Bay Card -->
+    <div class="bay-card">
+        <div class="bay-card-header">
+            <div class="bay-number" id="dashBayName">Bay 1</div>
+            <div class="bay-status idle" id="dashBayStatus">
+                <i class="fa-solid fa-check-circle"></i> <span>ว่าง</span>
+            </div>
+        </div>
+
+        <div class="session-panel" id="sessionPanel">
+            <div style="text-align:center; margin-bottom:0.5rem;">
+                <div style="color:#64748b; font-size:0.8rem;">เวลาใช้งาน</div>
+                <div class="timer-display" id="timer">00:00</div>
+            </div>
+            <div class="session-row">
+                <span class="session-label">ผู้ใช้</span>
+                <span class="session-value" id="sessionUser">-</span>
+            </div>
+            <div class="session-row">
+                <span class="session-label">ยอดจอง</span>
+                <span class="session-value" id="sessionAmount">฿0</span>
+            </div>
+            <button class="btn-stop" id="stopBtn" onclick="stopService()">
+                <i class="fa-solid fa-stop"></i> หยุดบริการ
+            </button>
+        </div>
+
+        <!-- Start service (when bay is idle) -->
+        <div id="startPanel">
+            <div class="form-group" style="margin-bottom:0.75rem;">
+                <label class="form-label">จำนวนเงินที่ต้องการใช้ (บาท)</label>
+                <input id="reserveAmount" class="form-input" type="number" placeholder="เช่น 20, 50, 100" min="1" step="1">
+            </div>
+            <button class="btn-primary" onclick="startService()">
+                <i class="fa-solid fa-play"></i> เริ่มล้างรถ
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ════════ HISTORY MODAL ════════ -->
+<div class="modal-overlay" id="historyModal">
+    <div class="modal-box">
+        <div class="modal-title">
+            <span><i class="fa-solid fa-clock-rotate-left"></i> ประวัติการเงิน</span>
+            <button class="modal-close" onclick="closeHistoryModal()">&times;</button>
+        </div>
+        <div id="historyList"><p style="color:#475569; text-align:center; padding:2rem 0;">กำลังโหลด...</p></div>
+    </div>
+</div>
+
+<!-- ════════ TOPUP MODAL ════════ -->
+<div class="modal-overlay" id="topupModal">
+    <div class="modal-box">
+        <div class="modal-title">
+            <span><i class="fa-solid fa-plus-circle"></i> เติมเงิน</span>
+            <button class="modal-close" onclick="closeTopupModal()">&times;</button>
+        </div>
+        <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:0.5rem;">เลือกจำนวนเงิน</p>
+        <div class="topup-amounts">
+            <button class="topup-btn" onclick="doTopup(20)">฿20</button>
+            <button class="topup-btn" onclick="doTopup(50)">฿50</button>
+            <button class="topup-btn" onclick="doTopup(100)">฿100</button>
+            <button class="topup-btn" onclick="doTopup(200)">฿200</button>
+            <button class="topup-btn" onclick="doTopup(500)">฿500</button>
+            <button class="topup-btn" onclick="doTopup(1000)">฿1,000</button>
+        </div>
+        <div class="form-group" style="margin-top:1rem;">
+            <label class="form-label">หรือใส่จำนวนเอง</label>
+            <div class="input-with-btn">
+                <input id="topupCustom" class="form-input" type="number" placeholder="จำนวนเงิน" min="1">
+                <button class="btn-otp" onclick="doTopup()" style="background:rgba(16,185,129,0.2); border-color:rgba(16,185,129,0.3); color:#6ee7b7;">เติม</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const API = window.location.origin;
+
+// ─── State ───
+let bayId = 1;
+let user = null;
+let token = null;
+let currentSession = null;
+let timerInterval = null;
+let otpCooldown = null;
+
+// ─── Init ───
+window.addEventListener('load', () => {
+    // Get bay ID from URL: /bay.html?id=2 or /bay/2
+    const params = new URLSearchParams(window.location.search);
+    bayId = parseInt(params.get('id')) || 1;
+
+    document.getElementById('authBayLabel').textContent = `Bay ${bayId}`;
+    document.getElementById('dashBayName').textContent = `Bay ${bayId}`;
+
+    // Check existing session
+    token = localStorage.getItem('customerToken');
+    const userStr = localStorage.getItem('customerUser');
+    if (token && userStr) {
+        try {
+            user = JSON.parse(userStr);
+            refreshProfile().then(() => enterDashboard());
+        } catch {
+            clearSession();
+        }
+    }
+
+    // Initialize Google Sign-In
+    initGoogleSignIn();
+});
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showMsg(type, text) {
+    const el = document.getElementById('authMsg');
+    el.className = 'auth-msg ' + type;
+    el.innerHTML = `<i class="fa-solid fa-${type === 'error' ? 'circle-exclamation' : 'check-circle'}"></i> <span>${escapeHtml(text)}</span>`;
+}
+function hideMsg() {
+    const el = document.getElementById('authMsg');
+    el.className = 'auth-msg';
+    el.innerHTML = '';
+}
+
+// ─── Google OAuth ───
+async function handleGoogleCallback(response) {
+    try {
+        const res = await fetch(`${API}/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken: response.credential, machine_id: bayId })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'เข้าสู่ระบบไม่สำเร็จ');
+
+        token = data.token;
+        user = data.user;
+        localStorage.setItem('customerToken', token);
+        localStorage.setItem('customerRefreshToken', data.refreshToken);
+        localStorage.setItem('customerUser', JSON.stringify(user));
+        showMsg('success', data.message || 'เข้าสู่ระบบสำเร็จ');
+        enterDashboard();
+    } catch (e) {
+        showMsg('error', e.message);
+    }
+}
+
+function initGoogleSignIn() {
+    fetch(`${API}/auth/google/client-id`)
+        .then(r => r.json())
+        .then(data => {
+            google.accounts.id.initialize({
+                client_id: data.clientId,
+                callback: handleGoogleCallback,
+                auto_select: false
+            });
+            google.accounts.id.renderButton(
+                document.getElementById('googleSignInButton'),
+                { type: 'standard', theme: 'filled_blue', size: 'large', text: 'signin_with', locale: 'th' }
+            );
+        })
+        .catch(err => {
+            console.error('Google Sign-In init failed:', err);
+            showMsg('error', 'ไม่สามารถโหลด Google Sign-In ได้');
+        });
+}
+
+// ─── Dashboard ───
+function enterDashboard() {
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('dashScreen').style.display = 'block';
+    document.getElementById('dashName').textContent = escapeHtml(user.name || 'ลูกค้า');
+    document.getElementById('dashPhone').textContent = escapeHtml(user.email || user.phone || '');
+    document.getElementById('dashBalance').textContent = `฿${(user.balance || 0).toLocaleString()}`;
+    fetchBayStatus();
+    setInterval(fetchBayStatus, 5000);
+}
+
+async function refreshProfile() {
+    try {
+        const res = await fetch(`${API}/me`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('session expired');
+        const data = await res.json();
+        user = data.user;
+        localStorage.setItem('customerUser', JSON.stringify(user));
+        document.getElementById('dashBalance').textContent = `฿${(user.balance || 0).toLocaleString()}`;
+    } catch {
+        clearSession();
+        throw new Error('session expired');
+    }
+}
+
+function clearSession() {
+    token = null; user = null;
+    localStorage.removeItem('customerToken');
+    localStorage.removeItem('customerRefreshToken');
+    localStorage.removeItem('customerUser');
+}
+
+// ─── Bay Status Polling ───
+async function fetchBayStatus() {
+    try {
+        const res = await fetch(`${API}/api/bay/${bayId}/session`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        const statusEl = document.getElementById('dashBayStatus');
+        const sessionPanel = document.getElementById('sessionPanel');
+        const startPanel = document.getElementById('startPanel');
+
+        if (data.session) {
+            currentSession = data.session;
+            statusEl.className = 'bay-status busy';
+            statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>กำลังใช้งาน</span>';
+            sessionPanel.classList.add('show');
+            startPanel.style.display = 'none';
+            document.getElementById('sessionUser').textContent = escapeHtml(data.session.user_name || 'ผู้ใช้');
+            document.getElementById('sessionAmount').textContent = `฿${data.session.reserved_amount || 0}`;
+
+            // Only show stop button if this is the user's session
+            const isMySession = data.session.user_id === user.id;
+            document.getElementById('stopBtn').style.display = isMySession ? 'block' : 'none';
+
+            if (!timerInterval) startTimer();
+        } else {
+            currentSession = null;
+            statusEl.className = 'bay-status idle';
+            statusEl.innerHTML = '<i class="fa-solid fa-check-circle"></i> <span>ว่าง</span>';
+            sessionPanel.classList.remove('show');
+            startPanel.style.display = 'block';
+            stopTimer();
+        }
+
+        // Refresh balance too
+        if (user) {
+            document.getElementById('dashBalance').textContent = `฿${(user.balance || 0).toLocaleString()}`;
+        }
+    } catch (e) {
+        console.error('Bay status error:', e);
+    }
+}
+
+// ─── Service Control ───
+async function startService() {
+    const amount = parseInt(document.getElementById('reserveAmount').value);
+    if (!amount || amount < 1) return alert('กรุณาระบุจำนวนเงิน');
+    if (amount > (user.balance || 0)) return alert(`ยอดเงินไม่พอ คุณมี ฿${user.balance}`);
+
+    if (!confirm(`ต้องการใช้เงิน ฿${amount} สำหรับ Bay ${bayId} ใช่ไหม?`)) return;
+
+    try {
+        const res = await fetch(`${API}/service/start`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ machine_id: bayId, command: 'START', reserve_amount: amount })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+
+        user.balance = data.balance;
+        localStorage.setItem('customerUser', JSON.stringify(user));
+        document.getElementById('reserveAmount').value = '';
+        fetchBayStatus();
+    } catch (e) {
+        alert(e.message);
+    }
+}
+
+async function stopService() {
+    if (!currentSession) return;
+    if (!confirm('ต้องการหยุดบริการใช่ไหม? ยอดเงินที่ใช้ไม่หมดจะคืนเข้ากระเป๋า')) return;
+
+    document.getElementById('stopBtn').disabled = true;
+    try {
+        const res = await fetch(`${API}/service/stop`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ session_id: currentSession.id, actual_amount: 0 })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+
+        user.balance = data.balance;
+        localStorage.setItem('customerUser', JSON.stringify(user));
+        document.getElementById('dashBalance').textContent = `฿${user.balance.toLocaleString()}`;
+        fetchBayStatus();
+    } catch (e) {
+        alert(e.message);
+    } finally {
+        document.getElementById('stopBtn').disabled = false;
+    }
+}
+
+// ─── Timer ───
+function startTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    let seconds = 0;
+    const el = document.getElementById('timer');
+    timerInterval = setInterval(() => {
+        seconds++;
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }, 1000);
+}
+function stopTimer() {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    document.getElementById('timer').textContent = '00:00';
+}
+
+// ─── Logout ───
+function handleLogout() {
+    if (!confirm('ต้องการออกจากระบบใช่ไหม?')) return;
+    fetch(`${API}/auth/logout`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+    }).catch(() => {});
+    clearSession();
+    stopTimer();
+    location.reload();
+}
+
+// ─── Topup ───
+function openTopupModal() { document.getElementById('topupModal').classList.add('show'); }
+function closeTopupModal() { document.getElementById('topupModal').classList.remove('show'); }
+
+async function doTopup(amount) {
+    if (!amount) {
+        amount = parseInt(document.getElementById('topupCustom').value);
+    }
+    if (!amount || amount < 1) return alert('กรุณาระบุจำนวนเงิน');
+
+    try {
+        const res = await fetch(`${API}/topup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ amount })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+
+        user.balance = data.balance;
+        localStorage.setItem('customerUser', JSON.stringify(user));
+        document.getElementById('dashBalance').textContent = `฿${data.balance.toLocaleString()}`;
+        document.getElementById('topupCustom').value = '';
+        closeTopupModal();
+        alert(`เติมเงิน ฿${amount} สำเร็จ!`);
+    } catch (e) {
+        alert(e.message);
+    }
+}
+
+// ─── History ───
+function openHistoryModal() {
+    document.getElementById('historyModal').classList.add('show');
+    loadHistory();
+}
+function closeHistoryModal() { document.getElementById('historyModal').classList.remove('show'); }
+
+async function loadHistory() {
+    const el = document.getElementById('historyList');
+    try {
+        const res = await fetch(`${API}/wallet/history`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+
+        if (!data.history || data.history.length === 0) {
+            el.innerHTML = '<p style="color:#475569; text-align:center; padding:2rem 0;">ยังไม่มีประวัติ</p>';
+            return;
+        }
+
+        const typeMap = { topup: 'เติมเงิน', reserve: 'จอง', usage: 'ใช้งาน', refund: 'คืนเงิน' };
+        el.innerHTML = data.history.map(h => {
+            const isPlus = h.action_type === 'topup' || h.action_type === 'refund';
+            const dt = new Date(h.created_at);
+            const dateStr = dt.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })
+                + ' ' + dt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+            return `<div class="history-item">
+                <div>
+                    <div class="history-type ${escapeHtml(h.action_type)}">${escapeHtml(typeMap[h.action_type] || h.action_type)}${h.machine_id ? ` (Bay ${h.machine_id})` : ''}</div>
+                    <div class="history-date">${escapeHtml(dateStr)}</div>
+                </div>
+                <div class="history-amount ${isPlus ? 'plus' : 'minus'}">${isPlus ? '+' : '-'}฿${Math.abs(h.amount).toLocaleString()}</div>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        el.innerHTML = `<p style="color:#f87171; text-align:center; padding:2rem 0;">${escapeHtml(e.message)}</p>`;
+    }
+}
+
+// Close modals on backdrop click
+document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.addEventListener('click', (e) => {
+        if (e.target === m) m.classList.remove('show');
+    });
+});
+</script>
+</body>
+</html>
